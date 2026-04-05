@@ -1,0 +1,216 @@
+/* ═══════════════════════════════════════════════════════════════
+   BROADSIDE — styles.css
+   Nautical-themed game UI. Mobile-first, portrait orientation.
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=IM+Fell+English:ital@0;1&display=swap');
+
+/* ─── Reset ─────────────────────────────────────────── */
+* { margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+html, body { width: 100%; height: 100vh; height: 100dvh; overflow: hidden;
+  background: #0a1628; font-family: 'IM Fell English', serif; color: #c0c8d8; }
+#app { width: 100%; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+/* ═══ Title Screen ══════════════════════════════════════ */
+#titleScreen {
+  position: absolute; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 35%, #1a3a5c 0%, #0d2137 50%, #060e1a 100%);
+}
+#titleScreen::before {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(212,168,83,.02) 60px, rgba(212,168,83,.02) 61px);
+  pointer-events: none;
+}
+#titleScreen h1 {
+  font-family: 'Cinzel', serif; font-weight: 900;
+  font-size: clamp(2.8rem, 9vw, 5.5rem); color: #d4a853;
+  text-shadow: 0 0 40px rgba(212,168,83,.3), 0 4px 12px rgba(0,0,0,.5);
+  letter-spacing: .18em; margin-bottom: .15em;
+}
+#titleScreen .subtitle {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  color: #8ab4d6; font-size: clamp(.9rem, 2.5vw, 1.3rem);
+  margin-bottom: 2em; opacity: .7;
+}
+.decorLine { width: 55%; max-width: 280px; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #d4a853 50%, transparent 100%); margin: 1.2em 0; }
+#titleScreen button, #gameOverScreen button {
+  font-family: 'Cinzel', serif; font-size: clamp(.95rem, 2.8vw, 1.3rem);
+  padding: .65em 2.2em; border: 2px solid #d4a853; border-radius: 2px;
+  background: transparent; color: #d4a853; cursor: pointer;
+  letter-spacing: .1em; transition: all .25s ease; margin: .35em;
+}
+#titleScreen button:hover, #titleScreen button:active,
+#gameOverScreen button:hover, #gameOverScreen button:active { background: #d4a853; color: #0a1628; }
+.titleBtnRow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* ═══ Game Container ════════════════════════════════════ */
+#gameContainer { display: none; width: 100%; height: 100vh; height: 100dvh;
+  flex-direction: column; overflow: hidden; }
+
+/* ─── Player Areas ──────────────────────────────────── */
+.playerArea { width: 100%; display: flex; align-items: center; justify-content: center;
+  gap: 5px; padding: 4px 6px; position: relative; z-index: 10;
+  flex-shrink: 0; flex-wrap: nowrap; overflow: hidden; }
+#p2Area { transform: rotate(180deg);
+  background: linear-gradient(to bottom, rgba(30,55,100,.92), rgba(15,30,60,.5));
+  border-bottom: 1px solid rgba(50,80,180,.3); }
+#p1Area { background: linear-gradient(to top, rgba(100,30,30,.92), rgba(60,15,15,.5));
+  border-top: 1px solid rgba(180,50,50,.3); }
+
+/* ─── Canvas ────────────────────────────────────────── */
+#boardCanvas { width: 100%; display: block; cursor: pointer; background: #0d2a42;
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+  -webkit-user-select: none; user-select: none; touch-action: manipulation; outline: none; }
+
+/* ═══ Turn Banner ═══════════════════════════════════════ */
+#turnBanner { position: absolute; left: 50%; transform: translateX(-50%); z-index: 20;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: clamp(.7rem, 2.2vw, 1rem);
+  padding: .25em 1.4em; border-radius: 3px; letter-spacing: .12em;
+  pointer-events: none; transition: all .4s ease; white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0,0,0,.3); }
+
+/* ═══ Aiming Panel ══════════════════════════════════════ */
+#aimPanel { position: absolute; left: 0; right: 0; z-index: 30;
+  display: none; padding: 8px 10px 6px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+#aimPanel.p1 { background: linear-gradient(to top, rgba(12,6,4,.97) 50%, rgba(18,10,8,.85));
+  border-top: 2px solid #a08040; }
+#aimPanel.p2 { background: linear-gradient(to bottom, rgba(4,10,20,.97) 50%, rgba(8,16,35,.85));
+  border-bottom: 2px solid #a08040; transform: rotate(180deg); }
+
+/* Side toggle */
+.aimSideRow { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+.sideBtn { font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(.7rem, 2vw, .95rem); padding: clamp(8px, 2vw, 12px) clamp(16px, 5vw, 28px);
+  border: 2px solid #4a4035; border-radius: 5px; cursor: pointer; transition: all .12s ease;
+  user-select: none; letter-spacing: .08em; background: linear-gradient(to bottom, #2a2520, #1a1815);
+  color: #6a5a45; touch-action: manipulation; }
+.sideBtn:active { transform: scale(.95); }
+.sideBtn.port.active { background: linear-gradient(to bottom, #7a2525, #5a1818);
+  border-color: #d05050; color: #ff9090; box-shadow: 0 0 14px rgba(200,60,60,.3); }
+.sideBtn.stbd.active { background: linear-gradient(to bottom, #1a5a30, #104a20);
+  border-color: #50c070; color: #90f0b0; box-shadow: 0 0 14px rgba(50,200,100,.3); }
+.sideDivider { font-family: 'Cinzel', serif; color: #5a4a35; font-size: clamp(.6rem, 1.5vw, .75rem); }
+
+/* Slider rows */
+.aimSliderRow { display: flex; align-items: center; gap: 6px; margin: 5px 0; padding: 0 2px; }
+.aimSliderLabel { font-family: 'Cinzel', serif; color: #a08040;
+  font-size: clamp(.5rem, 1.4vw, .68rem); width: 52px; text-align: right;
+  letter-spacing: .05em; flex-shrink: 0; text-transform: uppercase; }
+.aimSliderValue { font-family: 'IM Fell English', serif; color: #d8c890;
+  font-size: clamp(.5rem, 1.4vw, .68rem); width: 58px; text-align: left; flex-shrink: 0; padding-left: 4px; }
+
+/* Slider track */
+.sliderTrack { flex: 1; position: relative; height: clamp(42px, 11vw, 56px);
+  background: linear-gradient(to bottom, #1a1612, #252018, #1a1612);
+  border: 1px solid #4a4030; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,.5);
+  touch-action: none; cursor: pointer; overflow: hidden; }
+.trackNotch { position: absolute; top: 0; bottom: 0; width: 1px; background: #3a3528; pointer-events: none; }
+.trackNotchLabel { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  font-family: 'IM Fell English', serif; font-size: clamp(.38rem, 1vw, .48rem);
+  color: #5a5040; white-space: nowrap; pointer-events: none; }
+.trackNotch.active { background: #a08040; }
+.trackNotch.active .trackNotchLabel { color: #c0a860; font-weight: bold; }
+.sliderThumb { position: absolute; top: 2px; bottom: 2px; width: clamp(30px, 8vw, 42px);
+  border-radius: 5px; background: linear-gradient(to bottom, #6a5a40, #4a3a28, #3a2a18);
+  border: 2px solid #8a7a55; box-shadow: 0 2px 8px rgba(0,0,0,.4); pointer-events: none;
+  transition: left .06s ease-out; }
+.sliderThumb::before { content: ''; position: absolute; left: 50%; top: 22%; height: 56%;
+  width: 10px; margin-left: -5px; border-radius: 1px;
+  background: repeating-linear-gradient(to right, transparent, transparent 2px, rgba(160,128,64,.35) 2px, rgba(160,128,64,.35) 3px); }
+.sliderThumb::after { content: ''; position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #d4a853, #8a6a30); box-shadow: 0 0 5px rgba(212,168,83,.5); }
+
+/* Fire & dismiss buttons */
+#fireBtn { font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(1rem, 3vw, 1.3rem); padding: .5em 3em; min-height: 44px;
+  background: linear-gradient(to bottom, #8a1a1a, #b82525, #8a1a1a);
+  color: #f0d0a0; border: 2px solid #a08040; border-radius: 5px; cursor: pointer;
+  letter-spacing: .12em; margin: 8px auto 4px; display: block;
+  box-shadow: 0 3px 10px rgba(0,0,0,.4); text-shadow: 0 1px 3px rgba(0,0,0,.4);
+  transition: all .1s ease; touch-action: manipulation; }
+#fireBtn:active { transform: scale(.95) translateY(1px);
+  box-shadow: 0 1px 4px rgba(0,0,0,.5); background: linear-gradient(to bottom, #6a1212, #8a1a1a, #6a1212); }
+#dismissAim { position: absolute; top: 5px; right: 8px; min-height: 32px;
+  background: rgba(40,30,20,.5); border: 1px solid rgba(100,90,70,.5);
+  color: #b0a080; font-size: clamp(.75rem, 2vw, .9rem); padding: 6px 14px;
+  border-radius: 3px; cursor: pointer; font-family: 'IM Fell English', serif; touch-action: manipulation; }
+#aimPanel.p2 #dismissAim { top: auto; bottom: 5px; }
+
+/* ═══ End Turn / Action Buttons ═════════════════════════ */
+.endTurnBtn { font-family: 'Cinzel', serif; font-size: clamp(.75rem, 2.5vw, 1rem);
+  padding: .45em 1.4em; border: 1px solid #d4a853; background: rgba(212,168,83,.1);
+  color: #d4a853; border-radius: 4px; cursor: pointer; letter-spacing: .06em;
+  transition: all .15s ease; touch-action: manipulation; }
+.endTurnBtn:active { background: #d4a853; color: #0a1628; }
+.endTurnBtn:disabled { opacity: .25; pointer-events: none; }
+
+.muteBtn { font-size: clamp(.8rem, 2vw, 1rem); background: none; border: none;
+  cursor: pointer; padding: 4px; opacity: .6; }
+.aiToggleBtn { font-size: clamp(.9rem, 2.5vw, 1.2rem);
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 4px; cursor: pointer; padding: 4px 8px; opacity: .6;
+  transition: all .15s; touch-action: manipulation; }
+.aiToggleBtn.active { opacity: 1; background: rgba(52,152,219,.2);
+  border-color: rgba(52,152,219,.5); box-shadow: 0 0 8px rgba(52,152,219,.2); }
+
+/* ═══ Cards ═════════════════════════════════════════════ */
+.cardSlot { width: clamp(54px, 15vw, 80px); height: clamp(62px, 17vw, 90px);
+  border: 1px solid #3a5a7a; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 3px; cursor: pointer; flex-shrink: 0; touch-action: manipulation;
+  background: linear-gradient(135deg, rgba(15,30,55,.9), rgba(25,45,75,.9));
+  transition: all .12s ease; user-select: none; position: relative; }
+.cardSlot:active { transform: scale(.93); }
+.cardSlot .cardIcon { font-size: clamp(1.1rem, 3.5vw, 1.7rem); }
+.cardSlot .cardName { font-size: clamp(.42rem, 1.4vw, .6rem); color: #8ab4d6;
+  text-align: center; margin-top: 2px; line-height: 1.15; }
+.cardSlot.freeAction { border-color: rgba(241,196,15,.5); box-shadow: 0 0 6px rgba(241,196,15,.15); }
+.freeTag { position: absolute; top: 2px; right: 4px; font-size: .6rem; color: #f1c40f; }
+.cardSlot.selected { border-color: #e74c3c; box-shadow: 0 0 12px rgba(231,76,60,.4);
+  background: linear-gradient(135deg, rgba(60,15,15,.9), rgba(80,25,25,.9)); }
+
+/* ═══ Radial Menu ═══════════════════════════════════════ */
+#radialMenu { position: absolute; z-index: 25; display: none; width: 120px; height: 120px; }
+.radBtn { position: absolute; width: clamp(46px, 12vw, 58px); height: clamp(46px, 12vw, 58px);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: clamp(1rem, 3vw, 1.5rem); cursor: pointer; border: 2px solid rgba(212,168,83,.6);
+  backdrop-filter: blur(4px); transition: all .1s ease; touch-action: manipulation; }
+.radBtn:active { transform: scale(.88); }
+.radBtn.move { background: rgba(46,204,113,.75); color: #fff; }
+.radBtn.fire { background: rgba(200,40,40,.75); color: #fff; }
+.radBtn.card { background: rgba(130,70,170,.75); color: #fff; }
+
+/* ═══ Phase Labels ══════════════════════════════════════ */
+.phaseLabel { font-family: 'Cinzel', serif; color: #d4a853;
+  font-size: clamp(.65rem, 2vw, .85rem); letter-spacing: .06em; padding: 0 6px; white-space: nowrap; }
+.phaseLabel.small { font-size: clamp(.55rem, 1.5vw, .7rem); color: #8ab4d6; }
+
+/* ═══ Game Over ═════════════════════════════════════════ */
+#gameOverScreen { position: absolute; inset: 0; z-index: 100;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(4,10,22,.95); backdrop-filter: blur(12px); }
+#gameOverScreen h1 { font-family: 'Cinzel', serif; font-weight: 900;
+  font-size: clamp(2rem, 6vw, 3.5rem); color: #d4a853;
+  text-shadow: 0 0 30px rgba(212,168,83,.4); margin-bottom: .4em; letter-spacing: .1em; }
+#gameOverScreen .stats { color: #8ab4d6; font-size: clamp(.75rem, 2vw, .95rem);
+  text-align: center; line-height: 1.9; margin-bottom: 1.5em; }
+
+/* ═══ Tutorial Overlay ══════════════════════════════════ */
+#tutorialOverlay { position: absolute; inset: 0; z-index: 110;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(4,10,22,.92); padding: 20px; backdrop-filter: blur(8px); overflow-y: auto; }
+#tutorialOverlay .tutContent { max-width: 400px; color: #c0c8d8;
+  font-size: clamp(.75rem, 2vw, .95rem); line-height: 1.7; }
+#tutorialOverlay h2 { font-family: 'Cinzel', serif; color: #d4a853;
+  font-size: clamp(1.2rem, 3.5vw, 1.8rem); margin-bottom: .5em; }
+#tutorialOverlay h3 { font-family: 'Cinzel', serif; color: #d4a853;
+  font-size: clamp(.85rem, 2.2vw, 1.1rem); margin: .8em 0 .3em; }
+#tutorialOverlay button { font-family: 'Cinzel', serif; font-size: 1rem;
+  padding: .5em 2em; border: 2px solid #d4a853; background: transparent;
+  color: #d4a853; cursor: pointer; margin-top: 1em; border-radius: 2px; }
