@@ -1,0 +1,2270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a1628">
+<title>Broadside — A Naval Battle for Two</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   BROADSIDE — styles.css
+   Nautical-themed game UI. Mobile-first, portrait orientation.
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=IM+Fell+English:ital@0;1&display=swap');
+
+/* ─── Reset ─────────────────────────────────────────── */
+* { margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+html, body { width: 100%; height: 100vh; height: 100dvh; overflow: hidden;
+  background: #0a1628; font-family: 'IM Fell English', serif; color: #c0c8d8; }
+#app { width: 100%; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+/* ═══ Title Screen ══════════════════════════════════════ */
+#titleScreen {
+  position: absolute; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 35%, #1a3a5c 0%, #0d2137 50%, #060e1a 100%);
+}
+#titleScreen::before {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(212,168,83,.02) 60px, rgba(212,168,83,.02) 61px);
+  pointer-events: none;
+}
+#titleScreen h1 {
+  font-family: 'Cinzel', serif; font-weight: 900;
+  font-size: clamp(2.8rem, 9vw, 5.5rem); color: #d4a853;
+  text-shadow: 0 0 40px rgba(212,168,83,.3), 0 4px 12px rgba(0,0,0,.5);
+  letter-spacing: .18em; margin-bottom: .15em;
+}
+#titleScreen .subtitle {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  color: #8ab4d6; font-size: clamp(.9rem, 2.5vw, 1.3rem);
+  margin-bottom: 2em; opacity: .7;
+}
+.decorLine { width: 55%; max-width: 280px; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #d4a853 50%, transparent 100%); margin: 1.2em 0; }
+#titleScreen button, #gameOverScreen button {
+  font-family: 'Cinzel', serif; font-size: clamp(.95rem, 2.8vw, 1.3rem);
+  padding: .65em 2.2em; border: 2px solid #d4a853; border-radius: 2px;
+  background: transparent; color: #d4a853; cursor: pointer;
+  letter-spacing: .1em; transition: all .25s ease; margin: .35em;
+}
+#titleScreen button:hover, #titleScreen button:active,
+#gameOverScreen button:hover, #gameOverScreen button:active { background: #d4a853; color: #0a1628; }
+.titleBtnRow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* ═══ Game Container ════════════════════════════════════ */
+#gameContainer { display: none; width: 100%; height: 100vh; height: 100dvh;
+  flex-direction: column; overflow: hidden; }
+
+/* ─── Player Areas ──────────────────────────────────── */
+.playerArea { width: 100%; display: flex; align-items: center; justify-content: center;
+  gap: 5px; padding: 4px 6px; position: relative; z-index: 10;
+  flex-shrink: 0; flex-wrap: nowrap; overflow: hidden; }
+#p2Area { transform: rotate(180deg);
+  background: linear-gradient(to bottom, rgba(30,55,100,.92), rgba(15,30,60,.5));
+  border-bottom: 1px solid rgba(50,80,180,.3); }
+#p1Area { background: linear-gradient(to top, rgba(100,30,30,.92), rgba(60,15,15,.5));
+  border-top: 1px solid rgba(180,50,50,.3); }
+
+/* ─── Canvas ────────────────────────────────────────── */
+#boardCanvas { width: 100%; display: block; cursor: pointer; background: #0d2a42;
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+  -webkit-user-select: none; user-select: none; touch-action: manipulation; outline: none; }
+
+/* ═══ Turn Banner ═══════════════════════════════════════ */
+#turnBanner { position: absolute; left: 50%; transform: translateX(-50%); z-index: 20;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: clamp(.7rem, 2.2vw, 1rem);
+  padding: .25em 1.4em; border-radius: 3px; letter-spacing: .12em;
+  pointer-events: none; transition: all .4s ease; white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0,0,0,.3); }
+
+/* ═══ Aiming Panel ══════════════════════════════════════ */
+#aimPanel { position: absolute; left: 0; right: 0; z-index: 30;
+  display: none; padding: 8px 10px 6px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+#aimPanel.p1 { background: linear-gradient(to top, rgba(12,6,4,.97) 50%, rgba(18,10,8,.85));
+  border-top: 2px solid #a08040; }
+#aimPanel.p2 { background: linear-gradient(to bottom, rgba(4,10,20,.97) 50%, rgba(8,16,35,.85));
+  border-bottom: 2px solid #a08040; transform: rotate(180deg); }
+
+/* Side toggle */
+.aimSideRow { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+.sideBtn { font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(.7rem, 2vw, .95rem); padding: clamp(8px, 2vw, 12px) clamp(16px, 5vw, 28px);
+  border: 2px solid #4a4035; border-radius: 5px; cursor: pointer; transition: all .12s ease;
+  user-select: none; letter-spacing: .08em; background: linear-gradient(to bottom, #2a2520, #1a1815);
+  color: #6a5a45; touch-action: manipulation; }
+.sideBtn:active { transform: scale(.95); }
+.sideBtn.port.active { background: linear-gradient(to bottom, #7a2525, #5a1818);
+  border-color: #d05050; color: #ff9090; box-shadow: 0 0 14px rgba(200,60,60,.3); }
+.sideBtn.stbd.active { background: linear-gradient(to bottom, #1a5a30, #104a20);
+  border-color: #50c070; color: #90f0b0; box-shadow: 0 0 14px rgba(50,200,100,.3); }
+.sideDivider { font-family: 'Cinzel', serif; color: #5a4a35; font-size: clamp(.6rem, 1.5vw, .75rem); }
+
+/* Slider rows */
+.aimSliderRow { display: flex; align-items: center; gap: 6px; margin: 5px 0; padding: 0 2px; }
+.aimSliderLabel { font-family: 'Cinzel', serif; color: #a08040;
+  font-size: clamp(.5rem, 1.4vw, .68rem); width: 52px; text-align: right;
+  letter-spacing: .05em; flex-shrink: 0; text-transform: uppercase; }
+.aimSliderValue { font-family: 'IM Fell English', serif; color: #d8c890;
+  font-size: clamp(.5rem, 1.4vw, .68rem); width: 58px; text-align: left; flex-shrink: 0; padding-left: 4px; }
+
+/* Slider track */
+.sliderTrack { flex: 1; position: relative; height: clamp(42px, 11vw, 56px);
+  background: linear-gradient(to bottom, #1a1612, #252018, #1a1612);
+  border: 1px solid #4a4030; border-radius: 6px; box-shadow: inset 0 2px 6px rgba(0,0,0,.5);
+  touch-action: none; cursor: pointer; overflow: hidden; }
+.trackNotch { position: absolute; top: 0; bottom: 0; width: 1px; background: #3a3528; pointer-events: none; }
+.trackNotchLabel { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  font-family: 'IM Fell English', serif; font-size: clamp(.38rem, 1vw, .48rem);
+  color: #5a5040; white-space: nowrap; pointer-events: none; }
+.trackNotch.active { background: #a08040; }
+.trackNotch.active .trackNotchLabel { color: #c0a860; font-weight: bold; }
+.sliderThumb { position: absolute; top: 2px; bottom: 2px; width: clamp(30px, 8vw, 42px);
+  border-radius: 5px; background: linear-gradient(to bottom, #6a5a40, #4a3a28, #3a2a18);
+  border: 2px solid #8a7a55; box-shadow: 0 2px 8px rgba(0,0,0,.4); pointer-events: none;
+  transition: left .06s ease-out; }
+.sliderThumb::before { content: ''; position: absolute; left: 50%; top: 22%; height: 56%;
+  width: 10px; margin-left: -5px; border-radius: 1px;
+  background: repeating-linear-gradient(to right, transparent, transparent 2px, rgba(160,128,64,.35) 2px, rgba(160,128,64,.35) 3px); }
+.sliderThumb::after { content: ''; position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #d4a853, #8a6a30); box-shadow: 0 0 5px rgba(212,168,83,.5); }
+
+/* Fire & dismiss buttons */
+#fireBtn { font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(1rem, 3vw, 1.3rem); padding: .5em 3em; min-height: 44px;
+  background: linear-gradient(to bottom, #8a1a1a, #b82525, #8a1a1a);
+  color: #f0d0a0; border: 2px solid #a08040; border-radius: 5px; cursor: pointer;
+  letter-spacing: .12em; margin: 8px auto 4px; display: block;
+  box-shadow: 0 3px 10px rgba(0,0,0,.4); text-shadow: 0 1px 3px rgba(0,0,0,.4);
+  transition: all .1s ease; touch-action: manipulation; }
+#fireBtn:active { transform: scale(.95) translateY(1px);
+  box-shadow: 0 1px 4px rgba(0,0,0,.5); background: linear-gradient(to bottom, #6a1212, #8a1a1a, #6a1212); }
+#dismissAim { position: absolute; top: 5px; right: 8px; min-height: 32px;
+  background: rgba(40,30,20,.5); border: 1px solid rgba(100,90,70,.5);
+  color: #b0a080; font-size: clamp(.75rem, 2vw, .9rem); padding: 6px 14px;
+  border-radius: 3px; cursor: pointer; font-family: 'IM Fell English', serif; touch-action: manipulation; }
+#aimPanel.p2 #dismissAim { top: auto; bottom: 5px; }
+
+/* ═══ End Turn / Action Buttons ═════════════════════════ */
+.endTurnBtn { font-family: 'Cinzel', serif; font-size: clamp(.75rem, 2.5vw, 1rem);
+  padding: .45em 1.4em; border: 1px solid #d4a853; background: rgba(212,168,83,.1);
+  color: #d4a853; border-radius: 4px; cursor: pointer; letter-spacing: .06em;
+  transition: all .15s ease; touch-action: manipulation; }
+.endTurnBtn:active { background: #d4a853; color: #0a1628; }
+.endTurnBtn:disabled { opacity: .25; pointer-events: none; }
+
+.muteBtn { font-size: clamp(.8rem, 2vw, 1rem); background: none; border: none;
+  cursor: pointer; padding: 4px; opacity: .6; }
+.aiToggleBtn { font-size: clamp(.9rem, 2.5vw, 1.2rem);
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 4px; cursor: pointer; padding: 4px 8px; opacity: .6;
+  transition: all .15s; touch-action: manipulation; }
+.aiToggleBtn.active { opacity: 1; background: rgba(52,152,219,.2);
+  border-color: rgba(52,152,219,.5); box-shadow: 0 0 8px rgba(52,152,219,.2); }
+
+/* ═══ Cards ═════════════════════════════════════════════ */
+.cardSlot { width: clamp(54px, 15vw, 80px); height: clamp(62px, 17vw, 90px);
+  border: 1px solid #3a5a7a; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 3px; cursor: pointer; flex-shrink: 0; touch-action: manipulation;
+  background: linear-gradient(135deg, rgba(15,30,55,.9), rgba(25,45,75,.9));
+  transition: all .12s ease; user-select: none; position: relative; }
+.cardSlot:active { transform: scale(.93); }
+.cardSlot .cardIcon { font-size: clamp(1.1rem, 3.5vw, 1.7rem); }
+.cardSlot .cardName { font-size: clamp(.42rem, 1.4vw, .6rem); color: #8ab4d6;
+  text-align: center; margin-top: 2px; line-height: 1.15; }
+.cardSlot.freeAction { border-color: rgba(241,196,15,.5); box-shadow: 0 0 6px rgba(241,196,15,.15); }
+.freeTag { position: absolute; top: 2px; right: 4px; font-size: .6rem; color: #f1c40f; }
+.cardSlot.selected { border-color: #e74c3c; box-shadow: 0 0 12px rgba(231,76,60,.4);
+  background: linear-gradient(135deg, rgba(60,15,15,.9), rgba(80,25,25,.9)); }
+
+/* ═══ Radial Menu ═══════════════════════════════════════ */
+#radialMenu { position: absolute; z-index: 25; display: none; width: 120px; height: 120px; }
+.radBtn { position: absolute; width: clamp(46px, 12vw, 58px); height: clamp(46px, 12vw, 58px);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: clamp(1rem, 3vw, 1.5rem); cursor: pointer; border: 2px solid rgba(212,168,83,.6);
+  backdrop-filter: blur(4px); transition: all .1s ease; touch-action: manipulation; }
+.radBtn:active { transform: scale(.88); }
+.radBtn.move { background: rgba(46,204,113,.75); color: #fff; }
+.radBtn.fire { background: rgba(200,40,40,.75); color: #fff; }
+.radBtn.card { background: rgba(130,70,170,.75); color: #fff; }
+
+/* ═══ Phase Labels ══════════════════════════════════════ */
+.phaseLabel { font-family: 'Cinzel', serif; color: #d4a853;
+  font-size: clamp(.65rem, 2vw, .85rem); letter-spacing: .06em; padding: 0 6px; white-space: nowrap; }
+.phaseLabel.small { font-size: clamp(.55rem, 1.5vw, .7rem); color: #8ab4d6; }
+
+/* ═══ Game Over ═════════════════════════════════════════ */
+#gameOverScreen { position: absolute; inset: 0; z-index: 100;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(4,10,22,.95); backdrop-filter: blur(12px); }
+#gameOverScreen h1 { font-family: 'Cinzel', serif; font-weight: 900;
+  font-size: clamp(2rem, 6vw, 3.5rem); color: #d4a853;
+  text-shadow: 0 0 30px rgba(212,168,83,.4); margin-bottom: .4em; letter-spacing: .1em; }
+#gameOverScreen .stats { color: #8ab4d6; font-size: clamp(.75rem, 2vw, .95rem);
+  text-align: center; line-height: 1.9; margin-bottom: 1.5em; }
+
+/* ═══ Tutorial Overlay ══════════════════════════════════ */
+#tutorialOverlay { position: absolute; inset: 0; z-index: 110;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(4,10,22,.92); padding: 20px; backdrop-filter: blur(8px); overflow-y: auto; }
+#tutorialOverlay .tutContent { max-width: 400px; color: #c0c8d8;
+  font-size: clamp(.75rem, 2vw, .95rem); line-height: 1.7; }
+#tutorialOverlay h2 { font-family: 'Cinzel', serif; color: #d4a853;
+  font-size: clamp(1.2rem, 3.5vw, 1.8rem); margin-bottom: .5em; }
+#tutorialOverlay h3 { font-family: 'Cinzel', serif; color: #d4a853;
+  font-size: clamp(.85rem, 2.2vw, 1.1rem); margin: .8em 0 .3em; }
+#tutorialOverlay button { font-family: 'Cinzel', serif; font-size: 1rem;
+  padding: .5em 2em; border: 2px solid #d4a853; background: transparent;
+  color: #d4a853; cursor: pointer; margin-top: 1em; border-radius: 2px; }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ Title Screen ═══ -->
+  <div id="titleScreen">
+    <h1>BROADSIDE</h1>
+    <div class="decorLine"></div>
+    <div class="subtitle">A Naval Battle for Two</div>
+    <div class="titleBtnRow">
+      <button onclick="startSolo()">Solo Play</button>
+      <button onclick="startGame(true)">Two Player</button>
+    </div>
+    <div class="titleBtnRow" style="margin-top:.4em">
+      <button onclick="startGame(false)" style="font-size:clamp(.7rem,2vw,.9rem);padding:.4em 1.2em;opacity:.7">Custom Setup</button>
+      <button onclick="showTutorial()" style="font-size:clamp(.7rem,2vw,.9rem);padding:.4em 1.2em;opacity:.7">How to Play</button>
+      <button onclick="toggleFullscreen()" style="font-size:clamp(.7rem,2vw,.9rem);padding:.4em 1.2em;opacity:.7">⛶ Fullscreen</button>
+    </div>
+  </div>
+
+  <!-- ═══ Game Container ═══ -->
+  <div id="gameContainer">
+    <div id="p2Area" class="playerArea"></div>
+    <canvas id="boardCanvas"></canvas>
+    <div id="p1Area" class="playerArea"></div>
+  </div>
+
+  <!-- ═══ Turn Banner ═══ -->
+  <div id="turnBanner"></div>
+
+  <!-- ═══ Radial Menu (Move / Fire / Card) ═══ -->
+  <div id="radialMenu">
+    <div class="radBtn move" onclick="chooseAction('move')" title="Move">⚓</div>
+    <div class="radBtn fire" onclick="chooseAction('fire')" title="Fire">💥</div>
+    <div class="radBtn card" onclick="chooseAction('card')" title="Play Card">🃏</div>
+  </div>
+
+  <!-- ═══ Aiming Panel ═══ -->
+  <div id="aimPanel">
+    <button id="dismissAim" onclick="dismissAiming()">✕</button>
+    <div class="aimSideRow" id="sideToggle"></div>
+    <div class="aimSliderRow">
+      <span class="aimSliderLabel">Bearing</span>
+      <div class="sliderTrack" id="bearingTrack"></div>
+      <span class="aimSliderValue" id="bearingVal"></span>
+    </div>
+    <div class="aimSliderRow">
+      <span class="aimSliderLabel">Elevation</span>
+      <div class="sliderTrack" id="elevTrack"></div>
+      <span class="aimSliderValue" id="elevVal"></span>
+    </div>
+    <button id="fireBtn" onclick="fireCannon()">⚔ FIRE ⚔</button>
+  </div>
+
+  <!-- ═══ Game Over ═══ -->
+  <div id="gameOverScreen">
+    <h1 id="winnerText"></h1>
+    <div class="decorLine" style="margin:.5em auto"></div>
+    <div class="stats" id="statsText"></div>
+    <button onclick="location.reload()">New Game</button>
+  </div>
+
+  <!-- ═══ Tutorial ═══ -->
+  <div id="tutorialOverlay">
+    <div class="tutContent">
+      <h2>How to Play Broadside</h2>
+      <p>Two players share one device, sitting across from each other. Player 1 sits at the <b style="color:#e74c3c">bottom</b>, Player 2 at the <b style="color:#3498db">top</b>. In Solo Play, you're P1 and the AI controls P2.</p>
+
+      <h3>Setup</h3>
+      <p>In Custom Setup, players alternate placing terrain, then deploy ships in their home zone. In Quick/Solo Play, setup is automatic.</p>
+
+      <h3>On Your Turn</h3>
+      <p>Tap one of your ships to select it. A menu appears with three actions:</p>
+      <p>⚓ <b>Move</b> — A movement ring appears. Tap anywhere to sail to that point on the ring. Your ship rotates to face its new heading.</p>
+      <p>💥 <b>Fire</b> — Cannons fire from the <b>sides</b> of the ship (broadside!). Choose <b>Port</b> or <b>Starboard</b>, set <b>Bearing</b> (fore/aft angle) and <b>Elevation</b> (range). Ships cannot fire directly forward or backward — positioning matters!</p>
+      <p>🃏 <b>Card</b> — Play a crew card from your hand. Tap a card, then tap a target ship.</p>
+      <p>Each ship gets one action per turn. Tap <b>End Turn</b> when done.</p>
+
+      <h3>Cards</h3>
+      <p>You hold 3 crew cards. To play one: tap the card in your hand, then tap the target ship on the board. You draw back to 3 at the end of your turn.</p>
+      <p>⚡ cards are <b>free actions</b> — they don't use up a ship's turn. They glow gold.</p>
+
+      <h3>Card Reference</h3>
+      <p>🔭 <b>Lookout</b> ⚡ — Shows the distance to the nearest enemy. Tap one of your ships.</p>
+      <p>🛡️ <b>Brace for Impact</b> — Next hit on this ship deals 1 less damage. Tap one of your ships.</p>
+      <p>🚩 <b>Signal Flags</b> ⚡ — Gives an allied ship a bonus action, even if it already acted. Tap one of your ships.</p>
+      <p>⛵ <b>Full Sail</b> — Extended movement range with multiple distance rings. Tap one of your ships, then tap a destination.</p>
+      <p>↔️ <b>Evasive Maneuvers</b> — Slide sideways without changing facing. Tap one of your ships, then tap perpendicular.</p>
+      <p>🎯 <b>Skilled Gunner</b> — Fire twice from one ship. Tap one of your ships, then aim and fire twice.</p>
+      <p>🔧 <b>Repair Crew</b> — Restore 1 HP (a mast reappears). Tap one of your damaged ships.</p>
+      <p>⚔️ <b>Boarding Party</b> — Deal 1 damage to a nearby enemy. You must have a ship adjacent. Tap the enemy ship.</p>
+      <p>👁️ <b>Spotter</b> — Ghost shot to see where it lands, then real shot. Tap one of your ships, then aim twice.</p>
+      <p>💨 <b>Smokescreen</b> ⚡ — 50% chance enemies miss through smoke. Lasts 1 turn. Tap one of your ships.</p>
+
+      <h3>Terrain</h3>
+      <p>Islands and rocks block movement and cannonball paths. Reefs are cosmetic. Ships cannot sail through blocking terrain.</p>
+
+      <h3>Victory</h3>
+      <p>Sink all 3 of your opponent's ships! Each ship has 3 HP (shown as masts). Hit a ship to break a mast.</p>
+
+      <button onclick="hideTutorial()">Got it!</button>
+    </div>
+  </div>
+
+</div>
+<script>
+// ── constants.js ──
+// ═══════════════════════════════════════════════════════════════
+// BROADSIDE — constants.js
+// World configuration, math utilities, data tables, and theme
+// ═══════════════════════════════════════════════════════════════
+
+// ─── World ─────────────────────────────────────────────
+// Continuous coordinate space. Origin (0,0) is top-left.
+// P1 deploys at the bottom (high Y), P2 at the top (low Y).
+const WORLD_W = 10;
+const WORLD_H = 10;
+
+// ─── Game Rules ────────────────────────────────────────
+const SHIP_HP    = 3;   // hit points per ship (displayed as masts)
+const HAND_SIZE  = 3;   // cards drawn per turn
+const P1 = 1, P2 = 2;  // player identifiers
+
+// ─── Ship Properties ──────────────────────────────────
+const SHIP_RADIUS        = 0.35; // collision & visual radius
+const SHIP_MOVE_RADIUS   = 1.8;  // normal movement distance (ring radius)
+const SHIP_FULL_SAIL     = 3.5;  // Full Sail card movement distance
+const SHIP_EVASIVE_DIST  = 0.9;  // Evasive Maneuvers sideslip distance
+const SHIP_ADJACENT_DIST = 1.3;  // max distance for Boarding Party
+const SHIP_MIN_SEP       = 0.7;  // minimum allowed distance between any two ships
+const HIT_RADIUS         = 0.45; // how close a cannonball must land to hit a ship
+
+// ─── Zones ─────────────────────────────────────────────
+// Home zones for fleet deployment
+const HOME_ZONE = {
+  1: { yMin: WORLD_H - 2.2, yMax: WORLD_H - 0.3 },
+  2: { yMin: 0.3,           yMax: 2.2 },
+};
+// Terrain cannot be placed within this distance of the top/bottom edges
+const TERRAIN_EXCL_Y = 2.2;
+
+// ─── Math Utilities ────────────────────────────────────
+// All angles are radians: 0 = North (screen up), clockwise positive.
+
+/** Normalize angle to [0, 2π) */
+function normAngle(a) {
+  a = a % (Math.PI * 2);
+  return a < 0 ? a + Math.PI * 2 : a;
+}
+
+/** Heading angle from a delta vector. 0=N, π/2=E, π=S, 3π/2=W */
+function angleDelta(dx, dy) {
+  return normAngle(Math.atan2(dx, -dy));
+}
+
+/** Rotate vector (dx,dy) by heading h. Used to transform ship-local offsets to world coords. */
+function rotVec(dx, dy, h) {
+  const c = Math.cos(h), s = Math.sin(h);
+  return { dx: c * dx - s * dy, dy: s * dx + c * dy };
+}
+
+/** Euclidean distance between two points */
+function dist(x1, y1, x2, y2) {
+  return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+}
+
+// ─── Broadside Aiming System ───────────────────────────
+// Cannons fire from the SIDES of the ship (port/starboard), never the bow or stern.
+// Three controls: Side, Bearing (fore/aft angle along hull), Elevation (arc height = range).
+const SIDE_LABELS    = ['Port', 'Starboard'];
+const BEARING_LABELS = ['Fore', 'Fore-Mid', 'Abeam', 'Aft-Mid', 'Aft'];
+const ELEV_LABELS    = ['Flat', 'Low Arc', 'Medium', 'High Arc', 'Steep Lob'];
+
+// Firing table: key "bearing,elevation" → {dx, dy} offset for PORT side, heading=0 (North).
+// Port fires to the LEFT (negative dx). Starboard mirrors dx at runtime.
+// Bearing shifts the shot fore (negative dy) or aft (positive dy).
+// Elevation controls lateral range (how far the ball travels sideways from the ship).
+const FIRING_TABLE_PORT = {};
+(function buildFiringTable() {
+  const lateralRange = [0.8, 1.6, 2.8, 4.5, 6.2]; // distance per elevation step
+  const bearingShift = [-0.8, -0.4, 0, 0.4, 0.8];  // fore/aft factor, multiplied by range
+  for (let b = 0; b < 5; b++) {
+    for (let e = 0; e < 5; e++) {
+      const range = lateralRange[e];
+      FIRING_TABLE_PORT[`${b},${e}`] = {
+        dx: -range,                    // port = left = negative X
+        dy: bearingShift[b] * range,   // fore = negative Y, aft = positive Y
+      };
+    }
+  }
+})();
+
+// ─── Crew Cards ────────────────────────────────────────
+// Cards marked free:true are free actions (⚡) — they don't consume a ship's turn.
+const CARD_DEFS = {
+  lookout:        { name: 'Lookout',           icon: '🔭', desc: 'Measure distance to nearest enemy',    free: true  },
+  brace:          { name: 'Brace for Impact',  icon: '🛡️', desc: 'Reduce next hit by 1',                 free: false },
+  signal_flags:   { name: 'Signal Flags',      icon: '🚩', desc: 'Give ally a bonus action',             free: true  },
+  full_sail:      { name: 'Full Sail',         icon: '⛵', desc: 'Extended movement range',              free: false },
+  evasive:        { name: 'Evasive Maneuvers', icon: '↔️', desc: 'Slide sideways without turning',       free: false },
+  skilled_gunner: { name: 'Skilled Gunner',    icon: '🎯', desc: 'Fire twice from one ship',             free: false },
+  repair_crew:    { name: 'Repair Crew',       icon: '🔧', desc: 'Restore 1 HP',                        free: false },
+  boarding_party: { name: 'Boarding Party',    icon: '⚔️', desc: 'Damage a nearby enemy',                free: false },
+  spotter:        { name: 'Spotter',           icon: '👁️', desc: 'Ghost shot then real shot',             free: false },
+  smokescreen:    { name: 'Smokescreen',       icon: '💨', desc: 'Harder to hit for 1 turn',             free: true  },
+};
+const ALL_CARD_IDS = Object.keys(CARD_DEFS);
+
+// ─── Terrain ───────────────────────────────────────────
+// Terrain pieces are circles defined by {type, x, y, r}.
+// "blocks" means ships cannot enter and cannonballs are stopped.
+const TERRAIN_DEFS = {
+  island:   { name: 'Island',   blocks: true,  color: '#3a7a3a', sand: '#c4a265' },
+  rocks:    { name: 'Rocks',    blocks: true,  color: '#555'                      },
+  reef:     { name: 'Reef',     blocks: false, color: 'rgba(160,120,60,.3)'       },
+  sea_fort: { name: 'Sea Fort', blocks: true,  color: '#6a6a5a', hp: 3, destructible: true },
+};
+
+// Default terrain layout for Quick Play / Solo Play
+const TERRAIN_PRESETS = [
+  { type: 'island', x: 3.0, y: 4.8, r: 1.0  },
+  { type: 'island', x: 7.2, y: 5.5, r: 0.95 },
+  { type: 'rocks',  x: 5.0, y: 3.5, r: 0.45 },
+  { type: 'rocks',  x: 4.2, y: 6.8, r: 0.45 },
+  { type: 'reef',   x: 8.0, y: 4.0, r: 0.55 },
+  { type: 'reef',   x: 2.0, y: 6.0, r: 0.55 },
+];
+
+// ─── Theme Colors ──────────────────────────────────────
+const COLORS = {
+  ocean_deep:      '#0d2a42',
+  ocean_mid:       '#1a4a6e',
+  wave_line:       'rgba(120,180,220,.06)',
+  chart_line:      'rgba(200,220,240,.04)',
+  chart_label:     'rgba(200,220,240,.12)',
+  gold:            '#d4a853',
+  gold_dim:        'rgba(212,168,83,.4)',
+  p1_hull:         '#b03232',
+  p1_sail:         '#dc5050',
+  p1_banner:       'rgba(140,30,30,.85)',
+  p2_hull:         '#3250b0',
+  p2_sail:         '#5078dc',
+  p2_banner:       'rgba(30,60,140,.85)',
+  move_ring:       'rgba(46,204,113,.2)',
+  move_ring_border:'rgba(46,204,113,.6)',
+  smoke_trail:     'rgba(120,120,120,.3)',
+  cannonball:      '#1a1a1a',
+  terrain_sand:    '#c4a265',
+};
+
+
+// ── state.js ──
+// ═══════════════════════════════════════════════════════════════
+// BROADSIDE — state.js
+// Game state, spatial queries, validation, and turn management
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Core State ────────────────────────────────────────
+let G = null;  // the game state object — set by createGameState()
+let stats = { 1: { shots: 0, hits: 0, shipsSunk: 0 }, 2: { shots: 0, hits: 0, shipsSunk: 0 } };
+
+// ─── UI State (shared across modules) ──────────────────
+let selectedShip    = null;   // currently selected ship object, or null
+let actionMode      = null;   // null | 'move' | 'fire' | 'card' | 'deploy' | 'terrain_place'
+let moveRings       = [];     // array of radii for ring-snap movement
+let aimSide         = 0;      // 0=port, 1=starboard
+let aimBearing      = 2;      // 0–4 (Fore → Aft)
+let aimElev         = 2;      // 0–4 (Flat → Steep)
+let selectedCard    = null;   // index into active player's hand, or null
+let aimPreviewData  = null;   // {cx, cy, radius, side} for aim zone preview
+let deployFacing    = 0;      // heading in radians for fleet deployment
+let selectedTerrainIdx = -1;  // index into G.terrainPieces during placement
+
+// ─── AI State ──────────────────────────────────────────
+let aiControlled = { 1: false, 2: false };
+let aiRunning    = false;
+
+// ═══════════════════════════════════════════════════════════════
+// DECK
+// ═══════════════════════════════════════════════════════════════
+
+/** Create a shuffled deck containing 4 copies of each card type. */
+function shuffleDeck() {
+  const d = [];
+  for (let i = 0; i < 4; i++) ALL_CARD_IDS.forEach(c => d.push(c));
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME STATE CREATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Create a new game state.
+ * @param {boolean} skipSetup  If true, use preset terrain/positions and go straight to 'playing'.
+ *                             If false, start at 'terrain' placement phase.
+ */
+function createGameState(skipSetup) {
+  const deck = shuffleDeck();
+
+  function makeShip(id, heading, name) {
+    return {
+      id, x: -1, y: -1, heading,
+      hp: SHIP_HP, maxHp: SHIP_HP,
+      hasActed: false, braced: false, smoked: false, signaled: false,
+      name,
+    };
+  }
+
+  const state = {
+    phase: skipSetup ? 'playing' : 'terrain',
+    activePlayer: 1,
+    terrain: [],
+    terrainPieces: skipSetup ? [] : [
+      { type: 'island', r: 1.0  },
+      { type: 'island', r: 0.9  },
+      { type: 'rocks',  r: 0.45 },
+      { type: 'rocks',  r: 0.45 },
+      { type: 'reef',   r: 0.5  },
+      { type: 'reef',   r: 0.5  },
+    ],
+    players: {
+      1: {
+        ships: [
+          makeShip('p1_s1', 0, 'Vanguard'),
+          makeShip('p1_s2', 0, 'Resolute'),
+          makeShip('p1_s3', 0, 'Defiance'),
+        ],
+        hand: [deck.pop(), deck.pop(), deck.pop()],
+      },
+      2: {
+        ships: [
+          makeShip('p2_s1', Math.PI, 'Sovereign'),
+          makeShip('p2_s2', Math.PI, 'Tempest'),
+          makeShip('p2_s3', Math.PI, 'Stormchaser'),
+        ],
+        hand: [deck.pop(), deck.pop(), deck.pop()],
+      },
+    },
+    deck,
+    fortHp: {},  // key "x,y" → remaining HP for destructible sea forts
+    turn: 1,
+  };
+
+  // Quick Play: preset positions
+  if (skipSetup) {
+    state.terrain = TERRAIN_PRESETS.map(t => ({ type: t.type, x: t.x, y: t.y, r: t.r }));
+    const s1 = state.players[1].ships, s2 = state.players[2].ships;
+    s1[0].x = 2.5; s1[0].y = 8.8;
+    s1[1].x = 5.0; s1[1].y = 9.0;
+    s1[2].x = 7.5; s1[2].y = 8.8;
+    s2[0].x = 2.5; s2[0].y = 1.2;
+    s2[1].x = 5.0; s2[1].y = 1.0;
+    s2[2].x = 7.5; s2[2].y = 1.2;
+  }
+
+  return state;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SPATIAL QUERIES
+// ═══════════════════════════════════════════════════════════════
+
+/** Find a living ship near world coords (wx,wy). Returns {ship, player} or null. */
+function findShipNear(wx, wy, player, radius) {
+  const r = radius || SHIP_RADIUS * 2;
+  const players = player ? [player] : [1, 2];
+  for (const p of players) {
+    for (const s of G.players[p].ships) {
+      if (s.hp <= 0 || s.x < 0) continue;
+      if (dist(s.x, s.y, wx, wy) <= r) return { ship: s, player: p };
+    }
+  }
+  return null;
+}
+
+/** Check if all of a player's ships are sunk. */
+function allShipsSunk(p) {
+  return G.players[p].ships.every(s => s.hp <= 0);
+}
+
+/** Get array of living ships for a player. */
+function livingShips(p) {
+  return G.players[p].ships.filter(s => s.hp > 0);
+}
+
+/** Find terrain circle at a world point. */
+function terrainAt(wx, wy) {
+  return G.terrain.find(t => dist(t.x, t.y, wx, wy) <= t.r);
+}
+
+/** Check if a world point is inside blocking terrain. */
+function isBlockedAt(wx, wy) {
+  const t = terrainAt(wx, wy);
+  return t ? (TERRAIN_DEFS[t.type] && TERRAIN_DEFS[t.type].blocks) : false;
+}
+
+/** Check if a world point is within the play area. */
+function inBounds(wx, wy) {
+  return wx >= 0 && wx <= WORLD_W && wy >= 0 && wy <= WORLD_H;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LINE-OF-SIGHT & PATH COLLISION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Test if line segment (x1,y1)→(x2,y2) intersects circle (cx,cy,r).
+ * Uses quadratic formula on parametric ray vs circle.
+ */
+function lineIntersectsCircle(x1, y1, x2, y2, cx, cy, r) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const fx = x1 - cx, fy = y1 - cy;
+  const a = dx * dx + dy * dy;
+  if (a < 0.0001) return dist(x1, y1, cx, cy) < r;
+  const b = 2 * (fx * dx + fy * dy);
+  const c = fx * fx + fy * fy - r * r;
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return false;
+  const sqrtD = Math.sqrt(disc);
+  const t1 = (-b - sqrtD) / (2 * a);
+  const t2 = (-b + sqrtD) / (2 * a);
+  return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1) || (t1 < 0 && t2 > 1);
+}
+
+/** Check if a straight path is clear of blocking terrain. */
+function pathClear(ax, ay, bx, by) {
+  for (const t of G.terrain) {
+    if (!TERRAIN_DEFS[t.type] || !TERRAIN_DEFS[t.type].blocks) continue;
+    if (lineIntersectsCircle(ax, ay, bx, by, t.x, t.y, t.r + SHIP_RADIUS * 0.5)) return false;
+  }
+  return true;
+}
+
+/**
+ * Check if a cannonball's path from (sx,sy) to (lx,ly) crosses blocking terrain.
+ * Returns { terrain, hitX, hitY } of the first intersection, or null if clear.
+ */
+function shotPathCheck(sx, sy, lx, ly) {
+  let closest = null, closestT = Infinity;
+  for (const t of G.terrain) {
+    if (!TERRAIN_DEFS[t.type] || !TERRAIN_DEFS[t.type].blocks) continue;
+    const dx = lx - sx, dy = ly - sy;
+    const fx = sx - t.x, fy = sy - t.y;
+    const a = dx * dx + dy * dy;
+    if (a < 0.0001) continue;
+    const b = 2 * (fx * dx + fy * dy);
+    const c = fx * fx + fy * fy - t.r * t.r;
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) continue;
+    const sqrtD = Math.sqrt(disc);
+    const t1 = (-b - sqrtD) / (2 * a);
+    if (t1 > 0.05 && t1 < 1 && t1 < closestT) {
+      closestT = t1;
+      closest = { terrain: t, hitX: sx + dx * t1, hitY: sy + dy * t1 };
+    }
+  }
+  return closest;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOVEMENT VALIDATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check if a ship can move to (tx,ty).
+ * Validates: bounds, blocking terrain at destination, ship separation,
+ * and that the path doesn't cross any blocking terrain.
+ */
+function canMoveTo(ship, tx, ty) {
+  if (!inBounds(tx, ty)) return false;
+  for (const t of G.terrain) {
+    if (TERRAIN_DEFS[t.type] && TERRAIN_DEFS[t.type].blocks) {
+      if (dist(tx, ty, t.x, t.y) < t.r + SHIP_RADIUS) return false;
+    }
+  }
+  for (const p of [1, 2]) {
+    for (const s of G.players[p].ships) {
+      if (s.id === ship.id || s.hp <= 0 || s.x < 0) continue;
+      if (dist(tx, ty, s.x, s.y) < SHIP_MIN_SEP) return false;
+    }
+  }
+  if (ship.x >= 0 && !pathClear(ship.x, ship.y, tx, ty)) return false;
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FIRING
+// ═══════════════════════════════════════════════════════════════
+
+/** Box-Muller gaussian random number (mean 0, stddev 1). */
+function gaussRandom() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+/**
+ * Compute where a cannonball lands given ship state and dial settings.
+ * Looks up the base offset from the firing table, mirrors for starboard,
+ * rotates by ship heading, and applies gaussian scatter.
+ * @returns {{x: number, y: number}} world-space landing point
+ */
+function computeFiringSolution(ship, side, bearing, elev) {
+  const base = FIRING_TABLE_PORT[`${bearing},${elev}`] || { dx: -3, dy: 0 };
+  const mirrored = { dx: side === 1 ? -base.dx : base.dx, dy: base.dy };
+  const offset = rotVec(mirrored.dx, mirrored.dy, ship.heading);
+  const scatter = 0.25 + elev * 0.18;
+  return {
+    x: ship.x + offset.dx + gaussRandom() * scatter,
+    y: ship.y + offset.dy + gaussRandom() * scatter,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TURN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+/** End the active player's turn: reset ship flags, draw cards, switch player. */
+function endTurn() {
+  const ap = G.activePlayer;
+  G.players[ap].ships.forEach(s => {
+    s.hasActed = false;
+    s.smoked = false;
+    s.signaled = false;
+  });
+  while (G.players[ap].hand.length < HAND_SIZE && G.deck.length > 0) {
+    G.players[ap].hand.push(G.deck.pop());
+  }
+  if (G.deck.length < 5) G.deck = G.deck.concat(shuffleDeck());
+  G.activePlayer = ap === 1 ? 2 : 1;
+  G.turn++;
+  deselectAll();
+}
+
+/** Clear all UI selection state. */
+function deselectAll() {
+  selectedShip = null;
+  actionMode = null;
+  selectedCard = null;
+  aimPreviewData = null;
+  moveRings = [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEPLOYMENT VALIDATION
+// ═══════════════════════════════════════════════════════════════
+
+/** Check if a ship can be placed at (x,y) during deployment. */
+function canDeploy(x, y, player) {
+  const z = HOME_ZONE[player];
+  if (y < z.yMin || y > z.yMax) return false;
+  if (!inBounds(x, y)) return false;
+  if (isBlockedAt(x, y)) return false;
+  for (const s of G.players[player].ships) {
+    if (s.x >= 0 && dist(x, y, s.x, s.y) < SHIP_MIN_SEP) return false;
+  }
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TERRAIN PLACEMENT VALIDATION
+// ═══════════════════════════════════════════════════════════════
+
+/** Check if terrain of radius r can be placed at (x,y). */
+function canPlaceTerrainAt(x, y, r) {
+  if (!inBounds(x, y)) return false;
+  if (y < TERRAIN_EXCL_Y || y > WORLD_H - TERRAIN_EXCL_Y) return false;
+  for (const t of G.terrain) {
+    if (dist(x, y, t.x, t.y) < r + t.r + 0.2) return false;
+  }
+  return true;
+}
+
+/** Place a terrain piece from the terrainPieces queue at (x,y). Returns true on success. */
+function placeTerrainPiece(idx, x, y) {
+  const piece = G.terrainPieces[idx];
+  if (!piece || !canPlaceTerrainAt(x, y, piece.r)) return false;
+  G.terrain.push({ type: piece.type, x, y, r: piece.r });
+  G.terrainPieces.splice(idx, 1);
+  G.activePlayer = G.activePlayer === 1 ? 2 : 1;
+  selectedTerrainIdx = -1;
+  if (G.terrainPieces.length === 0) {
+    G.phase = 'deployment';
+    G.activePlayer = 1;
+  }
+  return true;
+}
+
+
+// ── audio.js ──
+// ═══════════════════════════════════════════════════════════════
+// BROADSIDE — audio.js
+// Synthesized sound effects (Web Audio API) and haptic feedback.
+// All sounds are generated procedurally — no external audio files.
+// ═══════════════════════════════════════════════════════════════
+
+let audioCtx  = null;
+let audioMuted = false;
+
+function initAudio() {
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch (e) { /* Web Audio not supported */ }
+}
+
+/** Resume audio context if suspended (required after user gesture on mobile). */
+function ensureAudio() {
+  if (!audioCtx) initAudio();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function toggleMute() { audioMuted = !audioMuted; return audioMuted; }
+
+// ─── Synthesis Primitives ──────────────────────────────
+
+/** Play filtered white noise burst. */
+function playNoise(duration, volume, filterFreq, filterQ) {
+  if (audioMuted || !audioCtx) return;
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * duration, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const filt = audioCtx.createBiquadFilter(); filt.type = 'lowpass';
+  filt.frequency.value = filterFreq || 1000; filt.Q.value = filterQ || 1;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(volume || 0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  src.connect(filt).connect(gain).connect(audioCtx.destination);
+  src.start();
+}
+
+/** Play a simple oscillator tone. */
+function playTone(freq, duration, type, volume) {
+  if (audioMuted || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = type || 'sine'; osc.frequency.value = freq;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(volume || 0.2, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + duration);
+}
+
+// ─── Sound Effects ─────────────────────────────────────
+
+function sfxSelect()  { ensureAudio(); playNoise(0.15, 0.12, 600, 3); playTone(180, 0.1, 'triangle', 0.05); }
+function sfxMove()    { ensureAudio(); playNoise(0.4, 0.15, 400, 1); playTone(120, 0.3, 'sine', 0.04); }
+
+let _lastDialClickTime = 0;
+function sfxDialClick() {
+  const now = performance.now();
+  if (now - _lastDialClickTime < 60) return;
+  _lastDialClickTime = now;
+  ensureAudio(); playTone(2200, 0.03, 'square', 0.15); playNoise(0.03, 0.1, 4000, 5);
+}
+
+function sfxFire() {
+  ensureAudio();
+  playNoise(0.5, 0.5, 200, 2); playTone(60, 0.3, 'sine', 0.4); playTone(40, 0.4, 'sine', 0.2);
+  setTimeout(() => playNoise(0.3, 0.1, 3000, 1), 100);
+}
+
+function sfxWhistle() {
+  ensureAudio(); if (!audioCtx) return;
+  const osc = audioCtx.createOscillator(); osc.type = 'sine';
+  osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.3);
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+}
+
+function sfxHitShip()   { ensureAudio(); playNoise(0.35, 0.4, 800, 3); playTone(150, 0.15, 'sawtooth', 0.15); }
+function sfxHitTerrain() { ensureAudio(); playNoise(0.2, 0.25, 300, 5); playTone(80, 0.15, 'sine', 0.2); }
+function sfxSplash()    { ensureAudio(); playNoise(0.3, 0.2, 2000, 1); playTone(400, 0.1, 'sine', 0.03); }
+function sfxCardPlay()  { ensureAudio(); playNoise(0.2, 0.1, 1500, 2); playTone(500, 0.08, 'triangle', 0.04); }
+function sfxMastFall()  { ensureAudio(); playNoise(0.25, 0.3, 600, 4); playTone(100, 0.2, 'sawtooth', 0.1); }
+
+function sfxSunk() {
+  ensureAudio();
+  playTone(80, 0.8, 'sawtooth', 0.15); playTone(60, 1.0, 'sine', 0.1);
+  setTimeout(() => { for (let i = 0; i < 6; i++) setTimeout(() => playTone(300 + Math.random() * 200, 0.08, 'sine', 0.06), i * 80); }, 300);
+}
+
+function sfxTurnChange() {
+  ensureAudio();
+  playTone(1200, 0.5, 'sine', 0.15); playTone(1205, 0.5, 'sine', 0.1);
+  setTimeout(() => playTone(1200, 0.4, 'sine', 0.08), 250);
+}
+
+function sfxVictory() {
+  ensureAudio();
+  [392, 523, 659, 784].forEach((f, i) => {
+    setTimeout(() => { playTone(f, 0.6, 'sawtooth', 0.12); playTone(f * 1.005, 0.6, 'sawtooth', 0.08); }, i * 200);
+  });
+}
+
+// ─── Haptic Feedback ───────────────────────────────────
+function haptic(pattern) { try { navigator.vibrate && navigator.vibrate(pattern); } catch (e) {} }
+function hapticTap()    { haptic(10); }
+function hapticThud()   { haptic(30); }
+function hapticDouble() { haptic([20, 40, 20]); }
+function hapticRumble() { haptic([30, 20, 30, 20, 60]); }
+
+
+// ── animations.js ──
+// ═══════════════════════════════════════════════════════════════
+// BROADSIDE — animations.js
+// Animation queue with factory functions and canvas rendering.
+// Each animation is an object with {type, duration, progress, ...params}.
+// The game loop calls updateAnimations() then drawAnimations(ctx).
+// ═══════════════════════════════════════════════════════════════
+
+let animations = [];
+let wavePhase  = 0;  // continuous time value for wave/pulse effects (seconds)
+
+// ─── Update ────────────────────────────────────────────
+
+/** Advance all animations. Called once per frame with the rAF timestamp. */
+function updateAnimations(timestamp) {
+  wavePhase = timestamp * 0.001;
+  animations.forEach(a => {
+    if (!a.startTime) a.startTime = timestamp;
+    a.progress = Math.min(1, (timestamp - a.startTime) / a.duration);
+    if (a.progress >= 1 && a.onComplete && !a.completed) {
+      a.completed = true;
+      a.onComplete();
+    }
+  });
+  animations = animations.filter(a => a.progress < 1);
+}
+
+/** True if any animations are playing (used to block input during fire animations). */
+function isAnimating() { return animations.length > 0; }
+
+// ─── Factory Functions ─────────────────────────────────
+// Each creates an animation object and pushes it into the queue.
+
+/** Cannonball flying from (sx,sy) to (ex,ey) with arc based on elevation. Returns a Promise. */
+function animCannonball(sx, sy, ex, ey, ghostly, elevation) {
+  const elev = elevation || 2;
+  return new Promise(resolve => {
+    animations.push({
+      type: 'cannonball', sx, sy, ex, ey,
+      ghostly: !!ghostly, elevation: elev,
+      duration: 350 + elev * 60,
+      progress: 0, startTime: null, onComplete: resolve,
+    });
+    sfxWhistle();
+  });
+}
+
+function animSplash(x, y)      { animations.push({ type: 'splash',      x, y, duration: 600, progress: 0, startTime: null }); sfxSplash(); }
+function animHitFlash(x, y)    { animations.push({ type: 'hit_flash',   x, y, duration: 400, progress: 0, startTime: null }); sfxHitShip(); hapticDouble(); }
+function animTerrainHit(x, y)  { animations.push({ type: 'terrain_hit', x, y, duration: 400, progress: 0, startTime: null }); sfxHitTerrain(); }
+function animSparkle(x, y)     { animations.push({ type: 'sparkle',     x, y, duration: 700, progress: 0, startTime: null }); }
+function animSinking(x, y)     { animations.push({ type: 'sinking',     x, y, duration: 1500, progress: 0, startTime: null }); sfxSunk(); hapticRumble(); }
+function animGoldenRing(x, y)  { animations.push({ type: 'golden_ring', x, y, duration: 800, progress: 0, startTime: null }); }
+function animFlags(x, y)       { animations.push({ type: 'flags',       x, y, duration: 900, progress: 0, startTime: null }); }
+function animSmoke(x, y)       { animations.push({ type: 'smoke_cloud', x, y, duration: 600, progress: 0, startTime: null }); }
+function animBoarding(x1, y1, x2, y2)         { animations.push({ type: 'boarding',     x1, y1, x2, y2, duration: 700, progress: 0, startTime: null }); }
+function animDottedLine(x1, y1, x2, y2, dist)  { animations.push({ type: 'dotted_line',  x1, y1, x2, y2, distance: dist, duration: 1500, progress: 0, startTime: null }); }
+function animDamageNumber(x, y, text)          { animations.push({ type: 'damage_number', x, y, text, duration: 800, progress: 0, startTime: null }); }
+
+// ─── Rendering ─────────────────────────────────────────
+
+/** Draw all active animations onto the canvas. */
+function drawAnimations(ctx) {
+  animations.forEach(a => {
+    const p = a.progress || 0;
+
+    switch (a.type) {
+
+      // ── Cannonball with parabolic arc ──
+      case 'cannonball': {
+        const elev = a.elevation || 2;
+        const gx = a.sx + (a.ex - a.sx) * p;
+        const gy = a.sy + (a.ey - a.sy) * p;
+        const arcH = (elev + 1) * 18;
+        const h = 4 * arcH * p * (1 - p);
+        const bx = gx, by = gy - h;
+        const baseR = a.ghostly ? 3 : 3.5;
+        const scale = 1 + (1 + (elev + 1) * 0.45 - 1) * 4 * p * (1 - p);
+        const br = baseR * scale;
+
+        // Shadow on ground
+        ctx.fillStyle = `rgba(0,0,0,${0.15 * (1 - 0.4 * (h / arcH || 0))})`;
+        ctx.beginPath(); ctx.ellipse(gx, gy + 2, br * 1.5, br * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+
+        // Smoke trail
+        ctx.strokeStyle = `rgba(100,100,100,${a.ghostly ? 0.1 : 0.2})`;
+        ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]); ctx.beginPath();
+        for (let i = 0; i <= Math.floor(p * 12); i++) {
+          const tp = i / 12;
+          const tx = a.sx + (a.ex - a.sx) * tp;
+          const ty = a.sy + (a.ey - a.sy) * tp - 4 * arcH * tp * (1 - tp) * 0.3;
+          i === 0 ? ctx.moveTo(tx, ty) : ctx.lineTo(tx, ty);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+
+        // Ball
+        if (a.ghostly) {
+          ctx.fillStyle = 'rgba(180,180,220,0.3)';
+          ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+        } else {
+          const grad = ctx.createRadialGradient(bx - br * 0.3, by - br * 0.3, 0, bx, by, br);
+          grad.addColorStop(0, '#4a4a4a'); grad.addColorStop(0.5, '#1a1a1a'); grad.addColorStop(1, '#0a0a0a');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+          if (p < 0.15 || p > 0.85) {
+            ctx.fillStyle = `rgba(255,140,40,0.3)`;
+            ctx.beginPath(); ctx.arc(bx, by, br * 2, 0, Math.PI * 2); ctx.fill();
+          }
+          if (h > arcH * 0.3) {
+            ctx.strokeStyle = `rgba(255,180,80,${0.12 * h / arcH})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(bx, by, br + 2, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+        break;
+      }
+
+      // ── Water splash ──
+      case 'splash': {
+        const r = 20 * p;
+        ctx.strokeStyle = `rgba(100,180,240,${1 - p})`; ctx.lineWidth = 2.5 - p * 2;
+        ctx.beginPath(); ctx.arc(a.x, a.y, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = `rgba(180,220,255,${0.6 - p * 0.6})`; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(a.x, a.y, r * 0.5, 0, Math.PI * 2); ctx.stroke();
+        break;
+      }
+
+      // ── Hit flash ──
+      case 'hit_flash': {
+        ctx.fillStyle = `rgba(255,140,0,${(1 - p) * 0.8})`;
+        ctx.beginPath(); ctx.arc(a.x, a.y, 14 * (1 + p * 0.5), 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,255,200,${(1 - p) * 0.5})`;
+        ctx.beginPath(); ctx.arc(a.x, a.y, 6, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+
+      // ── Terrain hit (dust puff) ──
+      case 'terrain_hit': {
+        ctx.fillStyle = `rgba(160,140,100,${(1 - p) * 0.6})`;
+        ctx.beginPath(); ctx.arc(a.x, a.y, 10 * (1 + p), 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+
+      // ── Sparkle (repair) ──
+      case 'sparkle': {
+        for (let i = 0; i < 8; i++) {
+          const ang = i * Math.PI * 2 / 8 + p * 3;
+          const r = 6 + p * 16;
+          ctx.fillStyle = `rgba(100,255,180,${(1 - p) * 0.8})`;
+          ctx.beginPath(); ctx.arc(a.x + Math.cos(ang) * r, a.y + Math.sin(ang) * r, 2.5 - p * 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      }
+
+      // ── Sinking ──
+      case 'sinking': {
+        const r = 20 + p * 15;
+        ctx.fillStyle = `rgba(10,30,60,${(1 - p) * 0.4})`;
+        ctx.beginPath(); ctx.arc(a.x, a.y, r, 0, Math.PI * 2); ctx.fill();
+        if (p > 0.2) {
+          for (let i = 0; i < 5; i++) {
+            ctx.fillStyle = `rgba(150,200,240,${Math.max(0, 1 - p - 0.2) * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(a.x + Math.sin(p * 10 + i * 2) * r * 0.6, a.y - p * 20 + Math.cos(p * 8 + i * 3) * 5, 2 + i * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        break;
+      }
+
+      // ── Golden ring (brace) ──
+      case 'golden_ring': {
+        const rp = 0.5 + Math.sin(p * Math.PI) * 0.5;
+        ctx.strokeStyle = `rgba(241,196,15,${rp * 0.8})`; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(a.x, a.y, 18 + p * 6, 0, Math.PI * 2); ctx.stroke();
+        break;
+      }
+
+      // ── Signal flags ──
+      case 'flags': {
+        for (let i = 0; i < 3; i++) {
+          const fx = a.x + (i - 1) * 10, fy = a.y - 12 - p * 15;
+          ctx.fillStyle = `rgba(${i === 0 ? '255,80,80' : i === 1 ? '255,255,80' : '80,80,255'},${1 - p})`;
+          ctx.fillRect(fx - 3, fy - 2, 6, 4);
+        }
+        break;
+      }
+
+      // ── Smoke cloud ──
+      case 'smoke_cloud': {
+        ctx.fillStyle = `rgba(60,60,60,${(1 - p) * 0.5})`;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath(); ctx.arc(a.x + Math.cos(i * 1.5) * 8, a.y + Math.sin(i * 1.5) * 6, 10 + p * 5, 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      }
+
+      // ── Boarding swords ──
+      case 'boarding': {
+        const mx = a.x1 + (a.x2 - a.x1) * Math.min(1, p * 2);
+        const my = a.y1 + (a.y2 - a.y1) * Math.min(1, p * 2);
+        ctx.fillStyle = `rgba(255,200,50,${p < 0.5 ? 1 : 2 * (1 - p)})`;
+        ctx.font = '16px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('⚔', mx, my);
+        break;
+      }
+
+      // ── Lookout dotted line ──
+      case 'dotted_line': {
+        const lp = Math.min(1, p * 2);
+        const ex = a.x1 + (a.x2 - a.x1) * lp, ey = a.y1 + (a.y2 - a.y1) * lp;
+        ctx.strokeStyle = `rgba(200,200,100,${1 - p * 0.3})`; ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(a.x1, a.y1); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
+        if (p > 0.3) {
+          ctx.fillStyle = `rgba(255,255,200,${Math.min(1, (p - 0.3) * 3)})`;
+          ctx.font = 'bold 14px "Cinzel",serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(a.distance.toFixed(1), (a.x1 + a.x2) / 2, (a.y1 + a.y2) / 2 - 10);
+        }
+        break;
+      }
+
+      // ── Floating damage number ──
+      case 'damage_number': {
+        ctx.fillStyle = `rgba(255,80,80,${1 - p})`;
+        ctx.font = 'bold 16px "Cinzel",serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(a.text, a.x, a.y - p * 25);
+        break;
+      }
+    }
+  });
+}
+
+
+// ── renderer.js ──
+// ═══════════════════════════════════════════════════════════════
+// BROADSIDE — renderer.js
+// Canvas rendering for the game board. Handles world↔screen
+// coordinate mapping, ocean, terrain, ships, and UI overlays.
+// ═══════════════════════════════════════════════════════════════
+
+let canvas, ctx;
+let canvasW = 0, canvasH = 0;
+let worldScale = 1, worldOffX = 0, worldOffY = 0;
+
+// ─── Initialization ────────────────────────────────────
+
+function initCanvas() {
+  canvas = document.getElementById('boardCanvas');
+  ctx = canvas.getContext('2d');
+}
+
+/**
+ * Measure available space and fit the world into the canvas.
+ * Uses visualViewport when available (mobile browser chrome awareness).
+ * Only resets the canvas buffer if dimensions actually changed (prevents flash).
+ */
+function resizeCanvas() {
+  const vv = window.visualViewport;
+  const screenW = vv ? vv.width : window.innerWidth;
+  const screenH = vv ? vv.height : window.innerHeight;
+  const p2h = document.getElementById('p2Area')?.offsetHeight || 0;
+  const p1h = document.getElementById('p1Area')?.offsetHeight || 0;
+  const availH = Math.max(80, screenH - p2h - p1h);
+  const dpr = window.devicePixelRatio || 1;
+  const newW = Math.round(screenW * dpr);
+  const newH = Math.round(availH * dpr);
+
+  if (canvas.width !== newW || canvas.height !== newH) {
+    canvas.width = newW;
+    canvas.height = newH;
+    canvas.style.width = screenW + 'px';
+    canvas.style.height = availH + 'px';
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvasW = screenW;
+  canvasH = availH;
+
+  // Fit world — width is the primary constraint
+  const padX = 8, padY = 8;
+  worldScale = Math.min((screenW - padX * 2) / WORLD_W, (availH - padY * 2) / WORLD_H);
+  worldOffX = Math.round((screenW - WORLD_W * worldScale) / 2);
+  worldOffY = Math.round((availH - WORLD_H * worldScale) / 2);
+}
+
+// ─── Coordinate Conversion ─────────────────────────────
+
+/** World coords → screen pixels */
+function w2s(wx, wy) {
+  return { x: worldOffX + wx * worldScale, y: worldOffY + wy * worldScale };
+}
+
+/** World radius → screen pixels */
+function w2r(wr) { return wr * worldScale; }
+
+/** Screen pixels → world coords */
+function s2w(sx, sy) {
+  return { x: (sx - worldOffX) / worldScale, y: (sy - worldOffY) / worldScale };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN DRAW
+// ═══════════════════════════════════════════════════════════════
+
+function drawFrame() {
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  drawOcean();
+  drawChartLines();
+  if (G.phase === 'terrain')    drawTerrainZones();
+  if (G.phase === 'deployment') drawDeployZone();
+  drawTerrain();
+  drawMoveRings();
+  drawAimPreview();
+  drawShips();
+  drawAnimations(ctx);
+  if (G.phase === 'playing') drawTurnEdgeGlow();
+}
+
+// ─── Ocean Background ──────────────────────────────────
+
+function drawOcean() {
+  const grad = ctx.createRadialGradient(canvasW / 2, canvasH / 2, 0, canvasW / 2, canvasH / 2, canvasW * 0.7);
+  grad.addColorStop(0, COLORS.ocean_mid);
+  grad.addColorStop(1, COLORS.ocean_deep);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  // Animated wave lines
+  ctx.strokeStyle = COLORS.wave_line;
+  ctx.lineWidth = 1;
+  for (let y = 0; y < canvasH; y += 16) {
+    ctx.beginPath();
+    for (let x = 0; x < canvasW; x += 3) {
+      const wy = y + Math.sin(x * 0.02 + wavePhase + y * 0.008) * 2.5;
+      x === 0 ? ctx.moveTo(x, wy) : ctx.lineTo(x, wy);
+    }
+    ctx.stroke();
+  }
+}
+
+// ─── Chart Reference Lines ─────────────────────────────
+
+function drawChartLines() {
+  ctx.strokeStyle = COLORS.chart_line;
+  ctx.lineWidth = 0.5;
+  for (let r = 2; r < WORLD_H; r += 2) {
+    const { y } = w2s(0, r);
+    ctx.beginPath(); ctx.moveTo(worldOffX, y); ctx.lineTo(worldOffX + WORLD_W * worldScale, y); ctx.stroke();
+  }
+  for (let c = 2; c < WORLD_W; c += 2) {
+    const { x } = w2s(c, 0);
+    ctx.beginPath(); ctx.moveTo(x, worldOffY); ctx.lineTo(x, worldOffY + WORLD_H * worldScale); ctx.stroke();
+  }
+  // Border
+  ctx.strokeStyle = 'rgba(200,220,240,.08)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(worldOffX, worldOffY, WORLD_W * worldScale, WORLD_H * worldScale);
+  // Compass
+  const cr = w2s(WORLD_W - 0.6, 0.6);
+  ctx.fillStyle = 'rgba(212,168,83,.2)';
+  ctx.font = `bold ${Math.max(9, worldScale * 0.35)}px "Cinzel",serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('N', cr.x, cr.y - 8);
+}
+
+// ─── Terrain ───────────────────────────────────────────
+
+function drawTerrain() {
+  if (!G) return;
+  G.terrain.forEach(t => {
+    const def = TERRAIN_DEFS[t.type] || {};
+    const { x: sx, y: sy } = w2s(t.x, t.y);
+    const sr = w2r(t.r);
+
+    switch (t.type) {
+      case 'island':
+        ctx.fillStyle = def.color;
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = COLORS.terrain_sand; ctx.lineWidth = sr * 0.15;
+        ctx.beginPath(); ctx.arc(sx, sy, sr * 0.9, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(60,130,60,.5)';
+        ctx.beginPath(); ctx.arc(sx - sr * .3, sy - sr * .2, sr * .2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx + sr * .2, sy + sr * .1, sr * .15, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'rocks':
+        ctx.fillStyle = '#555';
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#6a6a6a';
+        ctx.beginPath(); ctx.arc(sx - sr * .3, sy - sr * .2, sr * .45, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#4a4a4a';
+        ctx.beginPath(); ctx.arc(sx + sr * .25, sy + sr * .3, sr * .35, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'reef':
+        ctx.fillStyle = 'rgba(160,120,60,.2)';
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(160,120,60,.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.stroke();
+        break;
+      case 'sea_fort':
+        ctx.fillStyle = (G.fortHp[t.id] || 0) > 0 ? '#6a6a5a' : 'rgba(80,80,70,.3)';
+        ctx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
+        break;
+    }
+  });
+}
+
+// ─── Phase Overlays ────────────────────────────────────
+
+function drawTerrainZones() {
+  const { x: x0, y: yt } = w2s(0, 0);
+  const { x: x1, y: yb } = w2s(WORLD_W, WORLD_H);
+  const { y: exTop } = w2s(0, TERRAIN_EXCL_Y);
+  const { y: exBot } = w2s(0, WORLD_H - TERRAIN_EXCL_Y);
+  ctx.fillStyle = 'rgba(0,0,0,.2)';
+  ctx.fillRect(x0, yt, x1 - x0, exTop - yt);
+  ctx.fillRect(x0, exBot, x1 - x0, yb - exBot);
+  ctx.fillStyle = 'rgba(212,168,83,.15)';
+  ctx.font = `${Math.max(10, worldScale * 0.3)}px "Cinzel",serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const mid = w2s(WORLD_W / 2, WORLD_H / 2);
+  ctx.fillText('Tap to place terrain', mid.x, mid.y);
+}
+
+function drawDeployZone() {
+  const z = HOME_ZONE[G.activePlayer];
+  const { x: x0, y: y0 } = w2s(0, z.yMin);
+  const { x: x1, y: y1 } = w2s(WORLD_W, z.yMax);
+  ctx.fillStyle = `rgba(46,204,113,${0.05 + Math.sin(wavePhase * 2) * 0.03})`;
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.strokeStyle = 'rgba(46,204,113,.25)'; ctx.lineWidth = 1;
+  ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+}
+
+// ─── Movement Rings ────────────────────────────────────
+
+function drawMoveRings() {
+  if (actionMode !== 'move' || !selectedShip || !moveRings.length) return;
+  const { x: sx, y: sy } = w2s(selectedShip.x, selectedShip.y);
+  const outerR = Math.max(...moveRings);
+  const outerSR = w2r(outerR);
+
+  // Light fill
+  const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, outerSR);
+  grad.addColorStop(0, 'rgba(46,204,113,.02)');
+  grad.addColorStop(0.5, 'rgba(46,204,113,.04)');
+  grad.addColorStop(1, 'rgba(46,204,113,.01)');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(sx, sy, outerSR, 0, Math.PI * 2); ctx.fill();
+
+  // Each ring
+  moveRings.forEach(r => {
+    const sr = w2r(r);
+    const isOuter = r === outerR;
+    ctx.strokeStyle = isOuter ? COLORS.move_ring_border : 'rgba(46,204,113,.35)';
+    ctx.lineWidth = isOuter ? 2.5 : 1.5;
+    ctx.setLineDash(isOuter ? [8, 4] : [4, 4]);
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    // Glow
+    ctx.strokeStyle = `rgba(46,204,113,${isOuter ? 0.12 : 0.06})`;
+    ctx.lineWidth = isOuter ? 8 : 4;
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.stroke();
+    // Distance label (multi-ring only)
+    if (moveRings.length > 1) {
+      ctx.fillStyle = 'rgba(46,204,113,.5)';
+      ctx.font = `${Math.max(8, worldScale * 0.25)}px "IM Fell English",serif`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(r.toFixed(0), sx + sr + 4, sy);
+    }
+  });
+
+  // Compass ticks on outer ring
+  ctx.strokeStyle = 'rgba(46,204,113,.15)'; ctx.lineWidth = 1;
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+    ctx.beginPath();
+    ctx.moveTo(sx + Math.sin(a) * (outerSR - 6), sy - Math.cos(a) * (outerSR - 6));
+    ctx.lineTo(sx + Math.sin(a) * (outerSR + 3), sy - Math.cos(a) * (outerSR + 3));
+    ctx.stroke();
+  }
+}
+
+// ─── Aim Preview ───────────────────────────────────────
+
+function drawAimPreview() {
+  if (!aimPreviewData) return;
+  const { x: px, y: py } = w2s(aimPreviewData.cx, aimPreviewData.cy);
+  const pr = w2r(aimPreviewData.radius);
+  ctx.strokeStyle = 'rgba(220,220,220,.25)'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = 'rgba(220,220,220,.18)'; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(px - 4, py); ctx.lineTo(px + 4, py);
+  ctx.moveTo(px, py - 4); ctx.lineTo(px, py + 4);
+  ctx.stroke();
+}
+
+// ─── Ships ─────────────────────────────────────────────
+
+function drawShips() {
+  if (!G) return;
+  [1, 2].forEach(p => {
+    G.players[p].ships.forEach(s => {
+      if (s.hp <= 0 || s.x < 0) return;
+      drawShip(s, p);
+    });
+  });
+}
+
+function drawShip(ship, player) {
+  const { x: cx, y: cy } = w2s(ship.x, ship.y);
+  const isActive = player === G.activePlayer;
+  const isSelected = selectedShip && selectedShip.id === ship.id;
+  const sz = w2r(SHIP_RADIUS) * 1.3;
+  const alpha = isActive ? 1 : 0.45;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(ship.heading);
+
+  // Hull
+  const [hR, hG, hB] = player === 1 ? [180, 50, 50] : [50, 80, 180];
+  ctx.beginPath();
+  ctx.moveTo(0, -sz * 1.25);
+  ctx.quadraticCurveTo(sz * .7, -sz * .5, sz * .55, sz * .3);
+  ctx.lineTo(sz * .45, sz * .85);
+  ctx.quadraticCurveTo(0, sz, -sz * .45, sz * .85);
+  ctx.lineTo(-sz * .55, sz * .3);
+  ctx.quadraticCurveTo(-sz * .7, -sz * .5, 0, -sz * 1.25);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(${hR},${hG},${hB},${alpha})`;
+  ctx.fill();
+  ctx.strokeStyle = `rgba(212,168,83,${alpha * 0.5})`;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Deck
+  const [dR, dG, dB] = player === 1 ? [140, 90, 50] : [70, 90, 130];
+  ctx.beginPath();
+  ctx.moveTo(0, -sz * .85);
+  ctx.quadraticCurveTo(sz * .4, -sz * .2, sz * .32, sz * .5);
+  ctx.lineTo(-sz * .32, sz * .5);
+  ctx.quadraticCurveTo(-sz * .4, -sz * .2, 0, -sz * .85);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(${dR},${dG},${dB},${alpha * 0.8})`;
+  ctx.fill();
+
+  // Masts + sails (one per HP)
+  const mastY = [-sz * .55, 0, sz * .4];
+  const [sR, sG, sB] = player === 1 ? [220, 80, 80] : [80, 120, 220];
+  for (let i = 0; i < ship.maxHp; i++) {
+    const my = mastY[i];
+    if (i < ship.hp) {
+      ctx.beginPath(); ctx.arc(0, my, sz * .13, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(240,230,200,${alpha})`; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, my - sz * .14); ctx.lineTo(sz * .28, my + sz * .02); ctx.lineTo(0, my + sz * .14);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${sR},${sG},${sB},${alpha * 0.65})`; ctx.fill();
+    } else {
+      ctx.strokeStyle = `rgba(100,100,100,${alpha})`; ctx.lineWidth = 1.5;
+      const xsz = sz * .1;
+      ctx.beginPath();
+      ctx.moveTo(-xsz, my - xsz); ctx.lineTo(xsz, my + xsz);
+      ctx.moveTo(xsz, my - xsz); ctx.lineTo(-xsz, my + xsz);
+      ctx.stroke();
+    }
+  }
+
+  // Bowsprit
+  ctx.strokeStyle = `rgba(212,168,83,${alpha * 0.4})`; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, -sz * 1.25); ctx.lineTo(0, -sz * 1.65); ctx.stroke();
+
+  // Damage cracks at 1 HP
+  if (ship.hp === 1) {
+    ctx.strokeStyle = `rgba(200,50,50,${alpha * 0.5})`; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-sz * .25, -sz * .6); ctx.lineTo(sz * .15, sz * .4);
+    ctx.moveTo(sz * .2, -sz * .5); ctx.lineTo(-sz * .1, sz * .3);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // Selection pulse
+  if (isSelected) {
+    ctx.strokeStyle = `rgba(212,168,83,${0.5 + Math.sin(wavePhase * 4) * 0.35})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cx, cy, sz * 1.6, 0, Math.PI * 2); ctx.stroke();
+  }
+  // Smoke overlay
+  if (ship.smoked) {
+    ctx.fillStyle = 'rgba(60,60,60,.3)';
+    ctx.beginPath(); ctx.arc(cx, cy, sz * 1.4, 0, Math.PI * 2); ctx.fill();
+  }
+  // Brace ring
+  if (ship.braced) {
+    ctx.strokeStyle = `rgba(241,196,15,${0.3 + Math.sin(wavePhase * 5) * 0.2})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, sz * 1.5, 0, Math.PI * 2); ctx.stroke();
+  }
+  // Acted checkmark
+  if (ship.hasActed && isActive && G.phase === 'playing') {
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    ctx.beginPath(); ctx.arc(cx, cy, sz * 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(46,204,113,.5)';
+    ctx.font = `${sz * 0.9}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('✓', cx, cy);
+  }
+  // Ship name
+  if (worldScale > 25) {
+    ctx.fillStyle = `rgba(200,200,200,${alpha * 0.4})`;
+    ctx.font = `${Math.max(7, worldScale * 0.17)}px "IM Fell English",serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(ship.name, cx, cy + sz * 1.4);
+  }
+}
+
+// ─── Turn Edge Glow ────────────────────────────────────
+
+function drawTurnEdgeGlow() {
+  const ap = G.activePlayer;
+  const y = ap === 1 ? worldOffY + WORLD_H * worldScale : worldOffY;
+  const col = ap === 1 ? '180,50,50' : '50,80,180';
+  const grad = ctx.createLinearGradient(worldOffX, y - 3, worldOffX, y + 3);
+  grad.addColorStop(0, `rgba(${col},0)`);
+  grad.addColorStop(0.5, `rgba(${col},.4)`);
+  grad.addColorStop(1, `rgba(${col},0)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(worldOffX, y - 3, WORLD_W * worldScale, 6);
+}
+
+
+// ── cards.js ──
+// ═══════════════════════════════════════════════════════════════
+// BROADSIDE — cards.js
+// Crew card effect resolution. Called when a player taps a card
+// then taps a target on the board.
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Resolve a card effect at world position (wx, wy).
+ * @param {string} cardId  Key into CARD_DEFS
+ * @param {number} wx, wy  World coords of the tapped target
+ * @param {number} ap      Active player (1 or 2)
+ * @returns {boolean}       True if the card was successfully played
+ */
+function resolveCard(cardId, wx, wy, ap) {
+  const def = CARD_DEFS[cardId];
+  if (!def) return false;
+
+  const myShip   = findShipNear(wx, wy, ap, SHIP_RADIUS * 2.5);
+  const enemy    = ap === 1 ? 2 : 1;
+  const enemyHit = findShipNear(wx, wy, enemy, SHIP_RADIUS * 2.5);
+  const { x: tx, y: ty } = w2s(wx, wy);
+
+  sfxCardPlay();
+  hapticTap();
+
+  switch (cardId) {
+
+    case 'lookout': {
+      if (!myShip) return false;
+      const s = myShip.ship;
+      let minD = Infinity, closest = null;
+      G.players[enemy].ships.forEach(es => {
+        if (es.hp <= 0) return;
+        const d = dist(s.x, s.y, es.x, es.y);
+        if (d < minD) { minD = d; closest = es; }
+      });
+      if (closest) {
+        const a = w2s(s.x, s.y), b = w2s(closest.x, closest.y);
+        animDottedLine(a.x, a.y, b.x, b.y, minD);
+      }
+      return true;
+    }
+
+    case 'brace':
+      if (!myShip) return false;
+      myShip.ship.braced = true;
+      animGoldenRing(tx, ty);
+      return true;
+
+    case 'signal_flags':
+      if (!myShip) return false;
+      myShip.ship.hasActed = false;
+      myShip.ship.signaled = true;
+      animFlags(tx, ty);
+      return true;
+
+    case 'full_sail':
+      if (!myShip || myShip.ship.hasActed) return false;
+      moveRings = [1, 1.8, 2.6, 3.5];
+      actionMode = 'move';
+      selectedShip = myShip.ship;
+      return true;
+
+    case 'evasive':
+      if (!myShip || myShip.ship.hasActed) return false;
+      moveRings = [SHIP_EVASIVE_DIST];
+      actionMode = 'move';
+      selectedShip = myShip.ship;
+      selectedShip._evasive = true;
+      return true;
+
+    case 'skilled_gunner':
+      if (!myShip) return false;
+      myShip.ship._doubleShot = true;
+      selectedShip = myShip.ship;
+      actionMode = 'fire';
+      showAimPanel();
+      return true;
+
+    case 'repair_crew':
+      if (!myShip || myShip.ship.hp >= myShip.ship.maxHp) return false;
+      myShip.ship.hp++;
+      animSparkle(tx, ty);
+      return true;
+
+    case 'boarding_party': {
+      if (!enemyHit) return false;
+      const es = enemyHit.ship;
+      const adj = G.players[ap].ships.find(s =>
+        s.hp > 0 && dist(s.x, s.y, es.x, es.y) <= SHIP_ADJACENT_DIST
+      );
+      if (!adj) return false;
+      const a = w2s(adj.x, adj.y);
+      animBoarding(a.x, a.y, tx, ty);
+      let dmg = 1;
+      if (es.braced) { dmg = Math.max(0, dmg - 1); es.braced = false; }
+      if (es.smoked) dmg = Math.max(0, dmg - 1);
+      es.hp = Math.max(0, es.hp - dmg);
+      animDamageNumber(tx, ty - 8, dmg > 0 ? `-${dmg}` : 'Blocked!');
+      if (es.hp <= 0) {
+        stats[ap].shipsSunk++;
+        animSinking(tx, ty);
+        if (allShipsSunk(enemy)) setTimeout(() => triggerGameOver(ap), 1600);
+      }
+      return true;
+    }
+
+    case 'spotter':
+      if (!myShip) return false;
+      myShip.ship._spotterShot = true;
+      selectedShip = myShip.ship;
+      actionMode = 'fire';
+      showAimPanel();
+      return true;
+
+    case 'smokescreen':
+      if (!myShip) return false;
+      myShip.ship.smoked = true;
+      animSmoke(tx, ty);
+      return true;
+
+    default:
+      return false;
+  }
+}
+
+
+// ── main.js ──
+// ═══════════════════════════════════════════════════════════════
+// BROADSIDE — main.js
+// Game controller: initialization, game loop, DOM UI building,
+// canvas input handling, aiming panel, and turn flow.
+// ═══════════════════════════════════════════════════════════════
+
+let gameStarted = false;
+
+// ═══════════════════════════════════════════════════════════════
+// GAME INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Start a new game.
+ * @param {boolean} skipSetup     Skip terrain/deployment phases (Quick Play)
+ * @param {boolean} keepAiState   Don't reset AI toggles (used by startSolo)
+ */
+function startGame(skipSetup, keepAiState) {
+  document.getElementById('titleScreen').style.display = 'none';
+  document.getElementById('gameContainer').style.display = 'flex';
+  document.getElementById('gameOverScreen').style.display = 'none';
+  if (!keepAiState) { aiControlled[1] = false; aiControlled[2] = false; aiRunning = false; }
+  G = createGameState(skipSetup);
+  stats = { 1: { shots: 0, hits: 0, shipsSunk: 0 }, 2: { shots: 0, hits: 0, shipsSunk: 0 } };
+  initCanvas(); initAudio(); buildAllUI(); resizeCanvas();
+  canvas.addEventListener('pointerdown', onCanvasTap);
+  window.addEventListener('resize', resizeCanvas);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeCanvas);
+  document.addEventListener('fullscreenchange', () => setTimeout(resizeCanvas, 100));
+  document.addEventListener('webkitfullscreenchange', () => setTimeout(resizeCanvas, 100));
+  gameStarted = true;
+  requestAnimationFrame(() => { resizeCanvas(); requestAnimationFrame(gameLoop); });
+}
+
+/** Start a solo game (P1=human, P2=AI, Quick Play). */
+function startSolo() {
+  aiControlled[1] = false; aiControlled[2] = true; aiRunning = false;
+  startGame(true, true);
+}
+
+function gameLoop(ts) {
+  if (!gameStarted) return;
+  updateAnimations(ts);
+  drawFrame();
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOM UI BUILDING
+// ═══════════════════════════════════════════════════════════════
+
+function buildAllUI() { buildPlayerAreaUI(1); buildPlayerAreaUI(2); updateTurnBanner(); }
+function refreshAllUI() { buildAllUI(); }
+
+/** Build the control strip for one player. Content depends on game phase. */
+function buildPlayerAreaUI(p) {
+  const area = document.getElementById(p === 1 ? 'p1Area' : 'p2Area');
+  area.innerHTML = '';
+  if (G.phase === 'terrain')         { buildTerrainUI(p, area); buildAiToggle(p, area); }
+  else if (G.phase === 'deployment') { buildDeployUI(p, area);  buildAiToggle(p, area); }
+  else if (G.phase === 'playing')    { buildCardHandUI(p, area); buildEndTurnBtn(p, area); buildAiToggle(p, area); buildMuteBtn(p, area); }
+}
+
+// ─── Card Hand ─────────────────────────────────────────
+
+function buildCardHandUI(p, area) {
+  G.players[p].hand.forEach((cid, i) => {
+    const def = CARD_DEFS[cid];
+    if (!def) return;
+    const el = document.createElement('div');
+    el.className = 'cardSlot' + (def.free ? ' freeAction' : '') +
+      (selectedCard === i && actionMode === 'card' && G.activePlayer === p ? ' selected' : '');
+    el.innerHTML = `<span class="cardIcon">${def.icon}</span><span class="cardName">${def.name}</span>` +
+      (def.free ? '<span class="freeTag">⚡</span>' : '');
+    el.title = def.desc;
+    el.addEventListener('pointerdown', e => { e.stopPropagation(); onCardTap(p, i); });
+    area.appendChild(el);
+  });
+}
+
+// ─── End Turn Button ───────────────────────────────────
+
+function buildEndTurnBtn(p, area) {
+  const btn = document.createElement('button');
+  btn.className = 'endTurnBtn';
+  btn.textContent = 'End Turn';
+  btn.disabled = (G.activePlayer !== p || G.phase !== 'playing');
+  btn.addEventListener('pointerdown', e => { e.stopPropagation(); onEndTurn(p); });
+  area.appendChild(btn);
+}
+
+// ─── Mute & Fullscreen ─────────────────────────────────
+
+function buildMuteBtn(p, area) {
+  if (p !== 1) return;
+  const mute = document.createElement('button');
+  mute.className = 'muteBtn';
+  mute.textContent = audioMuted ? '🔇' : '🔊';
+  mute.addEventListener('pointerdown', e => { e.stopPropagation(); toggleMute(); mute.textContent = audioMuted ? '🔇' : '🔊'; });
+  area.appendChild(mute);
+
+  const fs = document.createElement('button');
+  fs.className = 'muteBtn';
+  fs.textContent = document.fullscreenElement ? '⊡' : '⛶';
+  fs.addEventListener('pointerdown', e => { e.stopPropagation(); toggleFullscreen(); });
+  area.appendChild(fs);
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    const el = document.documentElement;
+    (el.requestFullscreen || el.webkitRequestFullscreen).call(el)
+      .then(() => setTimeout(resizeCanvas, 100)).catch(() => {});
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+      .then(() => setTimeout(resizeCanvas, 100)).catch(() => {});
+  }
+}
+
+// ─── AI Toggle ─────────────────────────────────────────
+
+function buildAiToggle(p, area) {
+  const btn = document.createElement('button');
+  btn.className = 'aiToggleBtn' + (aiControlled[p] ? ' active' : '');
+  btn.textContent = aiControlled[p] ? '🤖' : '👤';
+  btn.title = aiControlled[p] ? 'AI Controlled' : 'Human';
+  btn.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    aiControlled[p] = !aiControlled[p];
+    refreshAllUI();
+    hapticTap();
+    if (aiControlled[p] && G.activePlayer === p) setTimeout(checkAiTurn, AI_DELAY);
+  });
+  area.appendChild(btn);
+}
+
+// ─── Terrain Placement UI ──────────────────────────────
+
+function buildTerrainUI(p, area) {
+  if (p !== G.activePlayer) {
+    area.appendChild(Object.assign(document.createElement('div'), { className: 'phaseLabel', textContent: 'Waiting...' }));
+    return;
+  }
+  area.appendChild(Object.assign(document.createElement('div'), {
+    className: 'phaseLabel', textContent: `Place terrain (${G.terrainPieces.length} left)`,
+  }));
+  G.terrainPieces.forEach((piece, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'endTurnBtn';
+    btn.textContent = TERRAIN_DEFS[piece.type]?.name || piece.type;
+    if (selectedTerrainIdx === i) { btn.style.background = '#d4a853'; btn.style.color = '#0a1628'; }
+    btn.addEventListener('pointerdown', e => {
+      e.stopPropagation(); selectedTerrainIdx = i; actionMode = 'terrain_place';
+      refreshAllUI(); hapticTap();
+    });
+    area.appendChild(btn);
+  });
+  const skip = document.createElement('button');
+  skip.className = 'endTurnBtn'; skip.textContent = 'Skip';
+  skip.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    G.terrainPieces = []; G.phase = 'deployment'; G.activePlayer = 1;
+    selectedTerrainIdx = -1; actionMode = null;
+    refreshAllUI();
+  });
+  area.appendChild(skip);
+}
+
+// ─── Fleet Deployment UI ───────────────────────────────
+
+function buildDeployUI(p, area) {
+  if (p !== G.activePlayer) {
+    area.appendChild(Object.assign(document.createElement('div'), { className: 'phaseLabel', textContent: 'Waiting...' }));
+    return;
+  }
+  const unplaced = G.players[G.activePlayer].ships.filter(s => s.x < 0);
+  if (!unplaced.length) {
+    area.appendChild(Object.assign(document.createElement('div'), { className: 'phaseLabel', textContent: 'Fleet deployed!' }));
+    const btn = document.createElement('button'); btn.className = 'endTurnBtn'; btn.textContent = 'Confirm';
+    btn.addEventListener('pointerdown', e => { e.stopPropagation(); confirmDeployment(); });
+    area.appendChild(btn);
+    return;
+  }
+  area.appendChild(Object.assign(document.createElement('div'), {
+    className: 'phaseLabel', textContent: `Tap to deploy: ${unplaced[0].name}`,
+  }));
+  const fl = document.createElement('div'); fl.className = 'phaseLabel small';
+  fl.textContent = `Heading: ${Math.round(deployFacing * 180 / Math.PI)}°`;
+  area.appendChild(fl);
+  const rb = document.createElement('button'); rb.className = 'endTurnBtn'; rb.textContent = '↻ Rotate';
+  rb.addEventListener('pointerdown', e => { e.stopPropagation(); deployFacing = normAngle(deployFacing + Math.PI / 4); refreshAllUI(); hapticTap(); });
+  area.appendChild(rb);
+  actionMode = 'deploy';
+}
+
+function confirmDeployment() {
+  const other = G.activePlayer === 1 ? 2 : 1;
+  if (G.players[other].ships.some(s => s.x < 0)) {
+    G.activePlayer = other;
+    deployFacing = other === 1 ? 0 : Math.PI;
+  } else {
+    G.phase = 'playing'; G.activePlayer = 1; sfxTurnChange();
+  }
+  deselectAll(); refreshAllUI();
+  setTimeout(checkAiTurn, AI_DELAY);
+}
+
+// ─── Turn Banner ───────────────────────────────────────
+
+function updateTurnBanner() {
+  const b = document.getElementById('turnBanner');
+  const p = G.activePlayer;
+  const labels = { terrain: 'Place Terrain', deployment: 'Deploy Fleet', playing: `Player ${p}'s Turn` };
+  b.textContent = `⚓ ${labels[G.phase] || ''} ⚓`;
+  b.style.color = p === 1 ? '#e74c3c' : '#3498db';
+  b.style.background = p === 1 ? COLORS.p1_banner : COLORS.p2_banner;
+  b.style.border = `1px solid ${p === 1 ? '#e74c3c' : '#3498db'}`;
+  const p2h = document.getElementById('p2Area')?.offsetHeight || 0;
+  const p1h = document.getElementById('p1Area')?.offsetHeight || 0;
+  if (p === 1) { b.style.bottom = (p1h + 4) + 'px'; b.style.top = 'auto'; b.style.transform = 'translateX(-50%)'; }
+  else { b.style.top = (p2h + 4) + 'px'; b.style.bottom = 'auto'; b.style.transform = 'translateX(-50%) rotate(180deg)'; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS INPUT
+// ═══════════════════════════════════════════════════════════════
+
+function onCanvasTap(e) {
+  if (isAnimating()) return;
+  const rect = canvas.getBoundingClientRect();
+  const { x: wx, y: wy } = s2w(e.clientX - rect.left, e.clientY - rect.top);
+  const ap = G.activePlayer;
+
+  // ── Terrain placement ──
+  if (G.phase === 'terrain' && actionMode === 'terrain_place' && selectedTerrainIdx >= 0) {
+    const piece = G.terrainPieces[selectedTerrainIdx];
+    if (piece && canPlaceTerrainAt(wx, wy, piece.r)) {
+      placeTerrainPiece(selectedTerrainIdx, wx, wy);
+      hapticTap(); sfxSelect(); refreshAllUI();
+      setTimeout(checkAiTurn, AI_DELAY);
+    }
+    return;
+  }
+  if (G.phase === 'terrain') return;
+
+  // ── Fleet deployment ──
+  if (G.phase === 'deployment' && actionMode === 'deploy') {
+    const unplaced = G.players[ap].ships.filter(s => s.x < 0);
+    if (unplaced.length && canDeploy(wx, wy, ap)) {
+      unplaced[0].x = wx; unplaced[0].y = wy; unplaced[0].heading = deployFacing;
+      hapticTap(); sfxSelect(); refreshAllUI();
+    }
+    return;
+  }
+  if (G.phase !== 'playing') return;
+
+  // ── Movement: snap to nearest ring edge ──
+  if (actionMode === 'move' && selectedShip && moveRings.length) {
+    const dx = wx - selectedShip.x, dy = wy - selectedShip.y;
+    const tapDist = Math.sqrt(dx * dx + dy * dy);
+    if (tapDist < 0.15) return; // tapped on the ship itself
+    const heading = Math.atan2(dx, -dy);
+    const dirX = Math.sin(heading), dirY = -Math.cos(heading);
+    // Find closest ring to tap distance
+    let bestRing = moveRings[0];
+    moveRings.forEach(r => { if (Math.abs(tapDist - r) < Math.abs(tapDist - bestRing)) bestRing = r; });
+    const tx = selectedShip.x + dirX * bestRing;
+    const ty = selectedShip.y + dirY * bestRing;
+    if (canMoveTo(selectedShip, tx, ty)) { executeMove(selectedShip, tx, ty); return; }
+    return; // blocked — let player try another direction
+  }
+
+  // ── Card targeting ──
+  if (actionMode === 'card' && selectedCard !== null) { executeCardPlay(wx, wy); return; }
+
+  // ── Ship selection ──
+  const hit = findShipNear(wx, wy, ap, SHIP_RADIUS * 3.5);
+  if (hit && hit.ship.hp > 0 && (!hit.ship.hasActed || hit.ship.signaled)) {
+    selectShip(hit.ship, e.clientX - rect.left, e.clientY - rect.top);
+    return;
+  }
+
+  // ── Deselect ──
+  deselectAll(); hideRadialMenu(); hideAimPanel(); refreshAllUI();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function selectShip(ship, sx, sy) {
+  selectedShip = ship; actionMode = null; selectedCard = null; moveRings = [];
+  hideAimPanel(); showRadialMenu(sx, sy);
+  sfxSelect(); hapticTap(); refreshAllUI();
+}
+
+function chooseAction(action) {
+  hideRadialMenu();
+  if (!selectedShip) return;
+  actionMode = action;
+  if (action === 'move') moveRings = [SHIP_MOVE_RADIUS];
+  else if (action === 'fire') showAimPanel();
+  refreshAllUI();
+}
+
+function executeMove(ship, tx, ty) {
+  const newHeading = angleDelta(tx - ship.x, ty - ship.y);
+  if (ship._evasive) {
+    // Evasive: only allow roughly perpendicular movement
+    const diff1 = Math.abs(normAngle(newHeading - ship.heading) - Math.PI / 2);
+    const diff2 = Math.abs(normAngle(newHeading - ship.heading) - Math.PI * 1.5);
+    if (Math.min(diff1, diff2) > Math.PI / 4) return;
+    delete ship._evasive;
+  } else {
+    ship.heading = newHeading;
+  }
+  ship.x = tx; ship.y = ty; ship.hasActed = true;
+  sfxMove(); hapticTap();
+  deselectAll(); hideRadialMenu(); refreshAllUI();
+}
+
+// ─── Firing ────────────────────────────────────────────
+
+function fireCannon() {
+  if (!selectedShip || actionMode !== 'fire') return;
+  const ship = selectedShip, ap = G.activePlayer, enemy = ap === 1 ? 2 : 1;
+  const landing = computeFiringSolution(ship, aimSide, aimBearing, aimElev);
+  const s = w2s(ship.x, ship.y), e = w2s(landing.x, landing.y);
+  const isGhost = ship._spotterShot && !ship._spotterFired;
+  const isDouble = ship._doubleShot && !ship._doubleFired;
+
+  stats[ap].shots++; sfxFire(); hapticThud();
+  if (!isGhost) ship.hasActed = true;
+  hideAimPanel(); aimPreviewData = null;
+
+  animCannonball(s.x, s.y, e.x, e.y, isGhost, aimElev).then(() => {
+    // Terrain interception
+    const pathHit = shotPathCheck(ship.x, ship.y, landing.x, landing.y);
+    if (pathHit) {
+      const hp = w2s(pathHit.hitX, pathHit.hitY);
+      animTerrainHit(hp.x, hp.y);
+      finishShot(ship, isGhost, isDouble); return;
+    }
+    // Terrain hit at landing point
+    const th = G.terrain.find(t => dist(landing.x, landing.y, t.x, t.y) <= t.r);
+    if (th) { animTerrainHit(e.x, e.y); finishShot(ship, isGhost, isDouble); return; }
+    // Ship hit
+    let hitShip = null;
+    G.players[enemy].ships.forEach(es => {
+      if (es.hp > 0 && dist(landing.x, landing.y, es.x, es.y) <= HIT_RADIUS) hitShip = es;
+    });
+    if (hitShip) {
+      let dmg = 1;
+      if (hitShip.braced) { dmg = Math.max(0, dmg - 1); hitShip.braced = false; }
+      if (hitShip.smoked && Math.random() < 0.5) dmg = 0;
+      if (dmg > 0) {
+        hitShip.hp = Math.max(0, hitShip.hp - dmg); stats[ap].hits++;
+        animHitFlash(e.x, e.y); animDamageNumber(e.x, e.y, `-${dmg}`);
+        if (hitShip.hp <= 0) {
+          stats[ap].shipsSunk++;
+          setTimeout(() => animSinking(e.x, e.y), 200);
+          if (allShipsSunk(enemy)) setTimeout(() => triggerGameOver(ap), 1800);
+        } else { sfxMastFall(); }
+      } else { animDamageNumber(e.x, e.y, 'Blocked!'); animSplash(e.x, e.y); }
+    } else { animSplash(e.x, e.y); }
+    finishShot(ship, isGhost, isDouble);
+  });
+
+  const saved = ship; deselectAll(); selectedShip = saved; refreshAllUI();
+}
+
+function finishShot(ship, isGhost, isDouble) {
+  if (isGhost)  { ship._spotterFired = true; selectedShip = ship; actionMode = 'fire'; setTimeout(showAimPanel, 300); return; }
+  if (isDouble && !ship._doubleFired) { ship._doubleFired = true; selectedShip = ship; actionMode = 'fire'; setTimeout(showAimPanel, 300); return; }
+  delete ship._doubleShot; delete ship._doubleFired;
+  delete ship._spotterShot; delete ship._spotterFired;
+  ship.hasActed = true;
+  deselectAll(); refreshAllUI();
+}
+
+// ─── Card Play ─────────────────────────────────────────
+
+function onCardTap(player, index) {
+  if (player !== G.activePlayer || G.phase !== 'playing') return;
+  if (selectedCard === index && actionMode === 'card') { selectedCard = null; actionMode = null; refreshAllUI(); return; }
+  selectedCard = index; actionMode = 'card'; hapticTap(); refreshAllUI();
+}
+
+function executeCardPlay(wx, wy) {
+  const ap = G.activePlayer, hand = G.players[ap].hand;
+  if (selectedCard === null || selectedCard >= hand.length) return;
+  const cid = hand[selectedCard], cidx = selectedCard;
+  if (resolveCard(cid, wx, wy, ap)) {
+    const ca = actionMode;
+    hand.splice(cidx, 1);
+    selectedCard = null;
+    if (ca === 'card') actionMode = null;
+    refreshAllUI();
+  }
+}
+
+function onEndTurn(p) {
+  if (p !== G.activePlayer || G.phase !== 'playing') return;
+  endTurn(); sfxTurnChange(); hapticTap(); refreshAllUI();
+  setTimeout(checkAiTurn, AI_DELAY);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RADIAL MENU (Move / Fire / Card)
+// ═══════════════════════════════════════════════════════════════
+
+function showRadialMenu(x, y) {
+  const rm = document.getElementById('radialMenu');
+  rm.style.display = 'block';
+  const p2h = document.getElementById('p2Area')?.offsetHeight || 0;
+  rm.style.left = (x - 60) + 'px';
+  rm.style.top = (p2h + y - 60) + 'px';
+  const btns = rm.querySelectorAll('.radBtn');
+  const ap = G.activePlayer;
+  const off = [
+    { x: -50, y: ap === 1 ? -16 : 16 },
+    { x: 0,   y: ap === 1 ? -58 : 58 },
+    { x: 50,  y: ap === 1 ? -16 : 16 },
+  ];
+  btns.forEach((b, i) => {
+    b.style.left = (60 + off[i].x - 26) + 'px';
+    b.style.top = (60 + off[i].y - 26) + 'px';
+  });
+}
+
+function hideRadialMenu() { document.getElementById('radialMenu').style.display = 'none'; }
+
+// ═══════════════════════════════════════════════════════════════
+// AIMING PANEL (Side / Bearing / Elevation sliders)
+// ═══════════════════════════════════════════════════════════════
+
+function showAimPanel() {
+  const panel = document.getElementById('aimPanel');
+  const ap = G.activePlayer;
+  panel.className = ap === 1 ? 'p1' : 'p2';
+  panel.style.bottom = ap === 1 ? '0' : 'auto';
+  panel.style.top = ap === 1 ? 'auto' : '0';
+  panel.style.display = 'block';
+  aimSide = 0; aimBearing = 2; aimElev = 2;
+  buildDials();
+}
+
+function hideAimPanel() { document.getElementById('aimPanel').style.display = 'none'; }
+
+function dismissAiming() {
+  hideAimPanel(); aimPreviewData = null; actionMode = null;
+  if (selectedShip) {
+    delete selectedShip._doubleShot; delete selectedShip._doubleFired;
+    delete selectedShip._spotterShot; delete selectedShip._spotterFired;
+  }
+  deselectAll(); refreshAllUI();
+}
+
+// ─── Dial Building (debounce-guarded) ──────────────────
+
+let _dialsBusy = false;
+
+function buildDials() {
+  buildSideToggle();
+  const bLabels = aimSide === 0 ? BEARING_LABELS : [...BEARING_LABELS].reverse();
+  const bIdx = aimSide === 0 ? aimBearing : (4 - aimBearing);
+  buildSlider('bearingTrack', 'bearingVal', bLabels, bIdx, di => {
+    if (_dialsBusy) return; _dialsBusy = true;
+    aimBearing = aimSide === 0 ? di : (4 - di);
+    buildDials(); sfxDialClick(); hapticTap(); _dialsBusy = false;
+  });
+  buildSlider('elevTrack', 'elevVal', ELEV_LABELS, aimElev, v => {
+    if (_dialsBusy) return; _dialsBusy = true;
+    aimElev = v; buildDials(); sfxDialClick(); hapticTap(); _dialsBusy = false;
+  });
+  document.getElementById('bearingVal').textContent = BEARING_LABELS[aimBearing];
+  document.getElementById('elevVal').textContent = ELEV_LABELS[aimElev];
+  updateAimPreview();
+}
+
+function buildSideToggle() {
+  const c = document.getElementById('sideToggle');
+  c.innerHTML = '';
+  function mk(cls, txt, val) {
+    const b = document.createElement('div');
+    b.className = 'sideBtn ' + cls + (aimSide === val ? ' active' : '');
+    b.textContent = txt;
+    b.addEventListener('pointerdown', e => {
+      e.stopPropagation(); e.preventDefault();
+      if (_dialsBusy || aimSide === val) return; _dialsBusy = true;
+      aimSide = val; buildDials(); sfxDialClick(); hapticTap(); _dialsBusy = false;
+    });
+    return b;
+  }
+  const div = document.createElement('span'); div.className = 'sideDivider'; div.textContent = '·';
+  c.appendChild(mk('port', '◂ Port', 0));
+  c.appendChild(div);
+  c.appendChild(mk('stbd', 'Stbd ▸', 1));
+}
+
+function buildSlider(trackId, valId, labels, currentVal, onChange) {
+  const track = document.getElementById(trackId);
+  track.innerHTML = '';
+  const n = labels.length, pad = 6;
+  for (let i = 0; i < n; i++) {
+    const pct = pad + i * (100 - 2 * pad) / (n - 1);
+    // Visual notch line + label
+    const notch = document.createElement('div');
+    notch.className = 'trackNotch' + (i === currentVal ? ' active' : '');
+    notch.style.left = pct + '%';
+    const lbl = document.createElement('span'); lbl.className = 'trackNotchLabel'; lbl.textContent = labels[i];
+    notch.appendChild(lbl);
+    track.appendChild(notch);
+    // Invisible tap zone
+    const segStart = i === 0 ? 0 : pad + (i - 0.5) * (100 - 2 * pad) / (n - 1);
+    const segEnd = i === n - 1 ? 100 : pad + (i + 0.5) * (100 - 2 * pad) / (n - 1);
+    const tz = document.createElement('div');
+    tz.style.cssText = `position:absolute;top:0;bottom:0;left:${segStart}%;width:${segEnd - segStart}%;cursor:pointer;z-index:1;`;
+    tz.addEventListener('pointerdown', ((idx) => e => {
+      e.stopPropagation(); e.preventDefault();
+      if (idx !== currentVal) onChange(idx);
+    })(i));
+    track.appendChild(tz);
+  }
+  // Thumb
+  const thumb = document.createElement('div'); thumb.className = 'sliderThumb';
+  thumb.style.left = `calc(${pad + currentVal * (100 - 2 * pad) / (n - 1)}% - 15px)`;
+  track.appendChild(thumb);
+}
+
+function updateAimPreview() {
+  if (!selectedShip || actionMode !== 'fire') { aimPreviewData = null; return; }
+  const base = FIRING_TABLE_PORT[`${aimBearing},${aimElev}`] || { dx: -3, dy: 0 };
+  const mir = { dx: aimSide === 1 ? -base.dx : base.dx, dy: base.dy };
+  const off = rotVec(mir.dx, mir.dy, selectedShip.heading);
+  aimPreviewData = {
+    cx: selectedShip.x + off.dx,
+    cy: selectedShip.y + off.dy,
+    radius: 0.8 + aimElev * 0.5,
+    side: aimSide,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME OVER
+// ═══════════════════════════════════════════════════════════════
+
+function triggerGameOver(winner) {
+  G.phase = 'gameOver'; sfxVictory(); hapticRumble();
+  document.getElementById('gameOverScreen').style.display = 'flex';
+  document.getElementById('winnerText').textContent = `Player ${winner} Wins!`;
+  const s1 = stats[1], s2 = stats[2];
+  document.getElementById('statsText').innerHTML =
+    `<b style="color:#e74c3c">P1:</b> ${s1.shots} shots · ${s1.hits} hits · ${s1.shots ? Math.round(s1.hits / s1.shots * 100) : 0}% · ${s1.shipsSunk} sunk<br>` +
+    `<b style="color:#3498db">P2:</b> ${s2.shots} shots · ${s2.hits} hits · ${s2.shots ? Math.round(s2.hits / s2.shots * 100) : 0}% · ${s2.shipsSunk} sunk<br><br>` +
+    `Game lasted ${G.turn} turns`;
+}
+
+// ─── Tutorial ──────────────────────────────────────────
+
+function showTutorial() { document.getElementById('tutorialOverlay').style.display = 'flex'; }
+function hideTutorial() { document.getElementById('tutorialOverlay').style.display = 'none'; }
+
+</script>
+</body>
+</html>

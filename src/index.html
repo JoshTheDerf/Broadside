@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a1628">
+<title>Broadside — A Naval Battle for Two</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<!-- STYLES_PLACEHOLDER -->
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ Title Screen ═══ -->
+  <div id="titleScreen">
+    <h1>BROADSIDE</h1>
+    <div class="decorLine"></div>
+    <div class="subtitle">A Naval Battle for Two</div>
+    <div class="titleBtnRow">
+      <button onclick="startSolo()">Solo Play</button>
+      <button onclick="startGame(true)">Two Player</button>
+    </div>
+    <div class="titleBtnRow" style="margin-top:.4em">
+      <button onclick="startGame(false)" style="font-size:clamp(.7rem,2vw,.9rem);padding:.4em 1.2em;opacity:.7">Custom Setup</button>
+      <button onclick="showTutorial()" style="font-size:clamp(.7rem,2vw,.9rem);padding:.4em 1.2em;opacity:.7">How to Play</button>
+      <button onclick="toggleFullscreen()" style="font-size:clamp(.7rem,2vw,.9rem);padding:.4em 1.2em;opacity:.7">⛶ Fullscreen</button>
+    </div>
+  </div>
+
+  <!-- ═══ Game Container ═══ -->
+  <div id="gameContainer">
+    <div id="p2Area" class="playerArea"></div>
+    <canvas id="boardCanvas"></canvas>
+    <div id="p1Area" class="playerArea"></div>
+  </div>
+
+  <!-- ═══ Turn Banner ═══ -->
+  <div id="turnBanner"></div>
+
+  <!-- ═══ Radial Menu (Move / Fire / Card) ═══ -->
+  <div id="radialMenu">
+    <div class="radBtn move" onclick="chooseAction('move')" title="Move">⚓</div>
+    <div class="radBtn fire" onclick="chooseAction('fire')" title="Fire">💥</div>
+    <div class="radBtn card" onclick="chooseAction('card')" title="Play Card">🃏</div>
+  </div>
+
+  <!-- ═══ Aiming Panel ═══ -->
+  <div id="aimPanel">
+    <button id="dismissAim" onclick="dismissAiming()">✕</button>
+    <div class="aimSideRow" id="sideToggle"></div>
+    <div class="aimSliderRow">
+      <span class="aimSliderLabel">Bearing</span>
+      <div class="sliderTrack" id="bearingTrack"></div>
+      <span class="aimSliderValue" id="bearingVal"></span>
+    </div>
+    <div class="aimSliderRow">
+      <span class="aimSliderLabel">Elevation</span>
+      <div class="sliderTrack" id="elevTrack"></div>
+      <span class="aimSliderValue" id="elevVal"></span>
+    </div>
+    <button id="fireBtn" onclick="fireCannon()">⚔ FIRE ⚔</button>
+  </div>
+
+  <!-- ═══ Game Over ═══ -->
+  <div id="gameOverScreen">
+    <h1 id="winnerText"></h1>
+    <div class="decorLine" style="margin:.5em auto"></div>
+    <div class="stats" id="statsText"></div>
+    <button onclick="location.reload()">New Game</button>
+  </div>
+
+  <!-- ═══ Tutorial ═══ -->
+  <div id="tutorialOverlay">
+    <div class="tutContent">
+      <h2>How to Play Broadside</h2>
+      <p>Two players share one device, sitting across from each other. Player 1 sits at the <b style="color:#e74c3c">bottom</b>, Player 2 at the <b style="color:#3498db">top</b>. In Solo Play, you're P1 and the AI controls P2.</p>
+
+      <h3>Setup</h3>
+      <p>In Custom Setup, players alternate placing terrain, then deploy ships in their home zone. In Quick/Solo Play, setup is automatic.</p>
+
+      <h3>On Your Turn</h3>
+      <p>Tap one of your ships to select it. A menu appears with three actions:</p>
+      <p>⚓ <b>Move</b> — A movement ring appears. Tap anywhere to sail to that point on the ring. Your ship rotates to face its new heading.</p>
+      <p>💥 <b>Fire</b> — Cannons fire from the <b>sides</b> of the ship (broadside!). Choose <b>Port</b> or <b>Starboard</b>, set <b>Bearing</b> (fore/aft angle) and <b>Elevation</b> (range). Ships cannot fire directly forward or backward — positioning matters!</p>
+      <p>🃏 <b>Card</b> — Play a crew card from your hand. Tap a card, then tap a target ship.</p>
+      <p>Each ship gets one action per turn. Tap <b>End Turn</b> when done.</p>
+
+      <h3>Cards</h3>
+      <p>You hold 3 crew cards. To play one: tap the card in your hand, then tap the target ship on the board. You draw back to 3 at the end of your turn.</p>
+      <p>⚡ cards are <b>free actions</b> — they don't use up a ship's turn. They glow gold.</p>
+
+      <h3>Card Reference</h3>
+      <p>🔭 <b>Lookout</b> ⚡ — Shows the distance to the nearest enemy. Tap one of your ships.</p>
+      <p>🛡️ <b>Brace for Impact</b> — Next hit on this ship deals 1 less damage. Tap one of your ships.</p>
+      <p>🚩 <b>Signal Flags</b> ⚡ — Gives an allied ship a bonus action, even if it already acted. Tap one of your ships.</p>
+      <p>⛵ <b>Full Sail</b> — Extended movement range with multiple distance rings. Tap one of your ships, then tap a destination.</p>
+      <p>↔️ <b>Evasive Maneuvers</b> — Slide sideways without changing facing. Tap one of your ships, then tap perpendicular.</p>
+      <p>🎯 <b>Skilled Gunner</b> — Fire twice from one ship. Tap one of your ships, then aim and fire twice.</p>
+      <p>🔧 <b>Repair Crew</b> — Restore 1 HP (a mast reappears). Tap one of your damaged ships.</p>
+      <p>⚔️ <b>Boarding Party</b> — Deal 1 damage to a nearby enemy. You must have a ship adjacent. Tap the enemy ship.</p>
+      <p>👁️ <b>Spotter</b> — Ghost shot to see where it lands, then real shot. Tap one of your ships, then aim twice.</p>
+      <p>💨 <b>Smokescreen</b> ⚡ — 50% chance enemies miss through smoke. Lasts 1 turn. Tap one of your ships.</p>
+
+      <h3>Terrain</h3>
+      <p>Islands and rocks block movement and cannonball paths. Reefs are cosmetic. Ships cannot sail through blocking terrain.</p>
+
+      <h3>Victory</h3>
+      <p>Sink all 3 of your opponent's ships! Each ship has 3 HP (shown as masts). Hit a ship to break a mast.</p>
+
+      <button onclick="hideTutorial()">Got it!</button>
+    </div>
+  </div>
+
+</div>
+<!-- SCRIPTS_PLACEHOLDER -->
+</body>
+</html>
